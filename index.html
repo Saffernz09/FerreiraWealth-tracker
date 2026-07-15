@@ -1,0 +1,2299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ferreira Wealth">
+<meta name="theme-color" content="#0E1014">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Ferreira Wealth OS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0E1014; --panel:#15181E; --panel2:#181C23; --header:#111318;
+    --grid:#262B34; --grid-soft:#1F242C;
+    --amber:#C6A76D; --amber-dim:#8E7A4F; --amber-soft:rgba(198,167,109,.12);
+    --cyan:#8FAEC9; --white:#EAEAE6; --muted:#8B929E;
+    --green:#5FBE8F; --red:#D97B7E; --input:#B9CBDD;
+    --radius:12px; --radius-sm:8px;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+  }
+  *{box-sizing:border-box;}
+  html{background:var(--bg);}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--white);
+    font-family:var(--sans);font-size:14px;line-height:1.5;
+    overscroll-behavior-y:none;-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--amber);color:#0E1014;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:var(--bg);}
+  ::-webkit-scrollbar-thumb{background:var(--grid);border-radius:99px;}
+  ::-webkit-scrollbar-thumb:hover{background:#333A45;}
+  input,select,button{font-family:var(--sans);}
+  a{color:var(--cyan);}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px;}
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{transition:none !important;animation:none !important;}
+  }
+  .val, td, th, #ticker, .codeBig, input, .tile, table{font-variant-numeric:tabular-nums;}
+
+  #app{display:flex;min-height:100vh;}
+
+  /* ------------------------------- rail --------------------------------- */
+  #sidebar{width:238px;flex:none;background:var(--header);border-right:1px solid var(--grid-soft);
+    display:flex;flex-direction:column;padding:0 0 12px 0;}
+  .brand{padding:24px 22px 18px 22px;border-bottom:1px solid var(--grid-soft);margin-bottom:10px;}
+  .brand .word{font-family:var(--serif);font-weight:500;font-size:21px;letter-spacing:.4px;color:var(--white);}
+  .brand .word em{font-style:normal;color:var(--amber);}
+  .brand .sub{color:var(--muted);font-size:10px;margin-top:5px;letter-spacing:1.6px;text-transform:uppercase;}
+  .brand .dot{display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;
+    margin-right:7px;vertical-align:1px;}
+  .navLabel{padding:13px 22px 5px 22px;font-size:9.5px;letter-spacing:1.8px;color:var(--muted);
+    text-transform:uppercase;font-weight:600;}
+  .navbtn{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;
+    color:#B6BBC4;text-align:left;padding:8px 22px;font-size:13px;font-weight:500;
+    cursor:pointer;border-left:2px solid transparent;letter-spacing:.1px;
+    transition:color .15s ease,background .15s ease;}
+  .navbtn svg{width:15px;height:15px;flex:none;opacity:.75;}
+  .navbtn:hover{color:var(--white);background:rgba(255,255,255,.03);}
+  .navbtn.active{color:var(--amber);border-left-color:var(--amber);background:var(--amber-soft);}
+  .navbtn.active svg{opacity:1;}
+  .navBadge{margin-left:auto;background:var(--red);color:#131313;font-size:9px;font-weight:700;
+    min-width:16px;height:16px;border-radius:99px;display:inline-flex;align-items:center;
+    justify-content:center;padding:0 4px;}
+  .navfoot{margin-top:auto;padding:14px 18px 6px 18px;border-top:1px solid var(--grid-soft);}
+  .navfoot button{display:block;width:100%;margin-bottom:7px;font-size:11px;font-weight:500;
+    padding:9px 10px;background:transparent;color:var(--muted);border:1px solid var(--grid);
+    border-radius:var(--radius-sm);cursor:pointer;letter-spacing:.2px;text-align:left;
+    transition:color .15s ease,border-color .15s ease;}
+  .navfoot button:hover{color:var(--white);border-color:var(--muted);}
+  #saveState{font-size:10px;color:var(--muted);margin-top:8px;padding:0 2px;min-height:14px;}
+
+  /* ------------------------------- main ---------------------------------- */
+  #main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  #ticker{background:var(--header);border-bottom:1px solid var(--grid-soft);
+    overflow:hidden;white-space:nowrap;padding:8px 0;font-size:11.5px;color:var(--muted);
+    display:flex;align-items:center;}
+  #tickerInner{flex:1;overflow:hidden;white-space:nowrap;}
+  #ticker span{padding:0 20px;}
+  #ticker b{color:var(--white);font-weight:600;}
+  .eyeBtn{flex:none;background:none;border:1px solid var(--grid);color:var(--muted);cursor:pointer;
+    font-size:10px;font-weight:600;letter-spacing:.6px;padding:4px 11px;margin:0 14px;
+    border-radius:99px;transition:color .15s ease,border-color .15s ease;}
+  .eyeBtn:hover{color:var(--white);border-color:var(--muted);}
+  .eyeBtn.on{color:#131313;background:var(--amber);border-color:var(--amber);}
+  #content{padding:28px 34px 70px 34px;overflow-y:auto;}
+
+  h1.pagetitle{font-family:var(--serif);font-weight:500;color:var(--white);
+    font-size:27px;letter-spacing:.2px;margin:0 0 4px 0;}
+  p.pagesub{color:var(--muted);font-size:12.5px;margin:0 0 22px 0;max-width:660px;}
+
+  .grid{display:grid;gap:14px;}
+  .g4{grid-template-columns:repeat(4,1fr);}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g2{grid-template-columns:repeat(2,1fr);}
+  @media(max-width:1180px){.g4{grid-template-columns:repeat(2,1fr);} .g3{grid-template-columns:repeat(2,1fr);}}
+
+  .tile{background:var(--panel);border:1px solid var(--grid-soft);border-radius:var(--radius);
+    padding:15px 17px 14px 17px;position:relative;}
+  .tile::before{content:"";position:absolute;top:0;left:17px;right:17px;height:2px;
+    background:var(--amber);border-radius:0 0 2px 2px;opacity:.9;}
+  .tile.cyan::before{background:var(--cyan);}
+  .tile.green::before{background:var(--green);}
+  .tile.red::before{background:var(--red);}
+  .tile.plain::before{background:var(--grid);}
+  .tile .lbl{color:var(--muted);font-size:10px;letter-spacing:1.4px;margin-bottom:8px;
+    font-weight:600;text-transform:uppercase;}
+  .tile .val{color:var(--white);font-size:24px;font-weight:600;letter-spacing:-.3px;}
+  .tile .val.sm{font-size:18px;}
+  .tile .val.md{font-size:20px;}
+  .tile .val.amber{color:var(--amber);}
+  .tile .val.cyan{color:var(--cyan);}
+  .tile .val.pos{color:var(--green);}
+  .tile .val.neg{color:var(--red);}
+  .tile .sub{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.45;}
+
+  .panel{background:var(--panel);border:1px solid var(--grid-soft);
+    padding:20px 22px;margin-bottom:16px;border-radius:var(--radius);}
+  .panel h3{color:var(--muted);font-size:10.5px;letter-spacing:1.6px;font-weight:600;
+    text-transform:uppercase;margin:0 0 14px 0;border-bottom:1px solid var(--grid-soft);
+    padding-bottom:11px;}
+  .panel h3 span{font-weight:500;letter-spacing:.2px;text-transform:none;}
+
+  .insight{background:var(--panel2);border:1px solid var(--grid-soft);border-left:3px solid var(--amber);
+    border-radius:var(--radius-sm);padding:12px 15px;font-size:12.5px;line-height:1.55;color:var(--white);}
+  .insight.good{border-left-color:var(--green);}
+  .insight.watch{border-left-color:var(--red);}
+  .insight.info{border-left-color:var(--cyan);}
+  .insight b{color:var(--amber);}
+  .insight.good b{color:var(--green);}
+  .insight.watch b{color:var(--red);}
+  .insightStack{display:grid;gap:10px;margin-bottom:16px;}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{color:var(--muted);text-align:right;font-size:10px;letter-spacing:1.2px;font-weight:600;
+    text-transform:uppercase;padding:7px 10px;border-bottom:1px solid var(--grid);white-space:nowrap;}
+  th:first-child,td:first-child{text-align:left;}
+  td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--grid-soft);
+    color:var(--white);white-space:nowrap;}
+  tbody tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,.015);}
+  td.pos,.pos{color:var(--green);} td.neg,.neg{color:var(--red);}
+  td.muted{color:var(--muted);font-style:italic;} td.cyan{color:var(--cyan);}
+  td.amber{color:var(--amber);}
+
+  .bar-outer{background:var(--grid-soft);height:6px;width:100%;margin-top:7px;
+    border-radius:99px;overflow:hidden;}
+  .bar-inner{background:var(--amber);height:6px;border-radius:99px;transition:width .4s ease;}
+
+  label{display:block;font-size:10.5px;color:var(--muted);letter-spacing:.6px;
+    font-weight:600;text-transform:uppercase;margin-bottom:5px;margin-top:13px;}
+  input[type=text],input[type=number],input[type=date],input[type=password],select{
+    width:100%;background:var(--bg);border:1px solid var(--grid);color:var(--input);
+    padding:9px 11px;font-size:13.5px;border-radius:var(--radius-sm);
+    transition:border-color .15s ease,box-shadow .15s ease;}
+  input:focus,select:focus{outline:none;border-color:var(--amber);
+    box-shadow:0 0 0 3px var(--amber-soft);}
+  input.invalid{border-color:var(--red);}
+  .row{display:flex;gap:14px;flex-wrap:wrap;}
+  .row > div{flex:1;min-width:170px;}
+
+  .btn{background:var(--amber);color:#131313;border:none;padding:10px 18px;font-weight:600;
+    font-size:12.5px;letter-spacing:.2px;cursor:pointer;margin-top:16px;
+    border-radius:var(--radius-sm);transition:filter .15s ease,transform .05s ease;}
+  .btn:hover{filter:brightness(1.08);}
+  .btn:active{transform:scale(.98);}
+  .btn.secondary{background:transparent;color:var(--cyan);border:1px solid var(--grid);}
+  .btn.secondary:hover{border-color:var(--cyan);filter:none;}
+  .btn.danger{background:transparent;color:var(--red);border:1px solid var(--grid);}
+  .btn.danger:hover{border-color:var(--red);}
+  .btn.small{padding:5px 11px;font-size:11px;margin-top:0;}
+
+  .toggle{display:inline-flex;border:1px solid var(--grid);margin-bottom:12px;
+    border-radius:var(--radius-sm);overflow:hidden;}
+  .toggle button{background:transparent;color:var(--muted);border:none;padding:8px 15px;
+    font-size:11px;font-weight:600;letter-spacing:.6px;cursor:pointer;
+    transition:background .15s ease,color .15s ease;}
+  .toggle button.on{background:var(--amber);color:#131313;}
+
+  canvas{max-width:100%;}
+  .chartWrap{position:relative;height:290px;}
+  .flexBetween{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+
+  .banner{background:var(--amber-soft);border:1px solid rgba(198,167,109,.35);color:#D9C193;
+    padding:12px 16px;font-size:12px;line-height:1.55;margin-bottom:16px;border-radius:var(--radius-sm);}
+  .banner.info{background:rgba(143,174,201,.08);border-color:rgba(143,174,201,.3);color:#AFC6DB;}
+  .banner.warn{background:rgba(217,123,126,.08);border-color:rgba(217,123,126,.35);color:#E3A9AB;}
+  .banner b{color:var(--white);}
+
+  .modalBg{display:none;position:fixed;inset:0;background:rgba(8,9,12,.78);z-index:50;
+    align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+  .modalBg.show{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--grid);width:660px;max-width:92vw;
+    max-height:88vh;overflow-y:auto;padding:24px 28px;border-radius:var(--radius);}
+  .modal h3{color:var(--white);font-family:var(--serif);font-weight:500;font-size:19px;
+    letter-spacing:.2px;margin-top:0;}
+  .closeX{float:right;background:none;border:none;color:var(--muted);font-size:17px;
+    cursor:pointer;padding:4px 8px;border-radius:6px;}
+  .closeX:hover{color:var(--white);background:rgba(255,255,255,.05);}
+
+  #authOverlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;
+    align-items:center;justify-content:center;padding:20px;}
+  .authBox{width:410px;max-width:94vw;background:var(--panel);border:1px solid var(--grid);
+    border-radius:var(--radius);padding:30px 32px;}
+  .authBox h2{font-family:var(--serif);font-weight:500;color:var(--white);font-size:22px;
+    letter-spacing:.2px;margin:0 0 5px 0;}
+  .authBox .sub2{color:var(--muted);font-size:12px;margin-bottom:16px;line-height:1.5;}
+  .authBox input{margin-bottom:4px;}
+  .authBox .btn{width:100%;margin-top:14px;}
+  .authBox .btn.secondary{margin-top:8px;}
+  #authMsg{font-size:12px;color:var(--cyan);margin-top:13px;min-height:15px;line-height:1.55;}
+  #authMsg.err{color:var(--red);}
+  .codeBig{font-size:27px;letter-spacing:7px;color:var(--amber);text-align:center;
+    background:var(--bg);border:1px dashed var(--amber-dim);padding:14px;margin:12px 0;
+    border-radius:var(--radius-sm);font-weight:600;}
+  .authLink{color:var(--muted);font-size:11.5px;text-decoration:underline;cursor:pointer;
+    background:none;border:none;padding:0;margin-top:14px;}
+  .authLink:hover{color:var(--cyan);}
+
+  input.cellIn{width:100px;padding:6px 8px;font-size:12.5px;text-align:right;}
+  .cfTable td{padding:6px 6px;}
+  .cfTable input,.cfTable select{padding:7px 8px;font-size:12.5px;}
+  .cfTable input.cf-amt{width:100px;text-align:right;}
+  .cfTable input.cf-name{min-width:150px;width:100%;}
+  .cfTable select{width:auto;min-width:88px;}
+  .iconBtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;
+    padding:4px 10px;border-radius:6px;}
+  .iconBtn:hover{color:var(--red);background:rgba(217,123,126,.08);}
+  .filterRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .filterRow .btn{margin-top:0;}
+
+  .hRow{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--grid-soft);
+    font-size:12.5px;line-height:1.5;}
+  .hRow:last-child{border-bottom:none;}
+  .hDot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px;}
+  .hDot.ok{background:var(--green);}
+  .hDot.warn{background:var(--red);}
+  .hDot.info{background:var(--cyan);}
+  .hRow .fix{color:var(--muted);font-size:11px;display:block;margin-top:2px;}
+
+  .scoreBar{display:inline-block;width:74px;height:6px;background:var(--grid-soft);
+    border-radius:99px;overflow:hidden;vertical-align:middle;margin-left:8px;}
+  .scoreBar i{display:block;height:6px;border-radius:99px;background:var(--amber);}
+
+  #mobileBar{display:none;}
+  #bottomBar{display:none;}
+  #drawer,#drawerScrim{display:none;}
+
+  @media(max-width:880px){
+    #sidebar{display:none;}
+    #app{flex-direction:column;}
+    #mobileBar{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:45;
+      background:rgba(17,19,24,.92);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--grid-soft);
+      padding:calc(10px + env(safe-area-inset-top)) 16px 10px 16px;}
+    #burgerBtn{background:none;border:none;color:var(--white);cursor:pointer;padding:8px;
+      margin-left:-8px;border-radius:8px;display:flex;align-items:center;}
+    #burgerBtn svg{width:20px;height:20px;}
+    .mWord{font-family:var(--serif);font-weight:500;font-size:17px;letter-spacing:.3px;}
+    .mWord em{font-style:normal;color:var(--amber);}
+    #mSync{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--green);}
+    #drawerScrim{display:block;position:fixed;inset:0;background:rgba(8,9,12,.6);z-index:59;
+      opacity:0;transition:opacity .2s ease;pointer-events:none;}
+    #drawerScrim.show{opacity:1;pointer-events:auto;}
+    #drawer{display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:60;
+      width:292px;max-width:84vw;background:var(--header);border-right:1px solid var(--grid-soft);
+      transform:translateX(-102%);transition:transform .22s ease;overflow-y:auto;
+      padding:calc(18px + env(safe-area-inset-top)) 0 calc(18px + env(safe-area-inset-bottom)) 0;}
+    #drawer.open{transform:translateX(0);}
+    #drawer .brand{padding:6px 22px 16px 22px;}
+    #drawer .navbtn{padding:12px 22px;font-size:14px;}
+    #drawer .navfoot{padding:14px 18px 4px 18px;}
+    #drawer .navfoot button{padding:11px 12px;font-size:12px;}
+    #bottomBar{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:45;
+      background:rgba(17,19,24,.94);backdrop-filter:blur(10px);
+      border-top:1px solid var(--grid-soft);
+      padding:6px 8px calc(6px + env(safe-area-inset-bottom)) 8px;}
+    #bottomBar .navbtn,#bottomBar #menuBtn{flex:1;flex-direction:column;gap:3px;
+      align-items:center;justify-content:center;padding:7px 2px;border-left:none;
+      font-size:9.5px;letter-spacing:.4px;font-weight:600;text-transform:uppercase;
+      color:var(--muted);background:none;border:none;cursor:pointer;display:flex;}
+    #bottomBar .navbtn svg,#bottomBar #menuBtn svg{width:19px;height:19px;opacity:.8;}
+    #bottomBar .navbtn.active{color:var(--amber);background:none;border:none;}
+    #bottomBar .navbtn.active svg{opacity:1;}
+    #quickAdd{flex:none;width:52px;height:52px;margin:-18px 6px 0 6px;border-radius:50%;
+      background:var(--amber);color:#131313;border:none;font-size:26px;font-weight:500;
+      line-height:1;cursor:pointer;box-shadow:0 6px 18px rgba(198,167,109,.35);
+      display:flex;align-items:center;justify-content:center;}
+    #quickAdd:active{transform:scale(.95);}
+    #ticker{font-size:10.5px;}
+    #tickerInner{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+    #tickerInner::-webkit-scrollbar{display:none;}
+    #ticker span{padding:0 12px;}
+    .eyeBtn{margin:0 10px 0 4px;}
+    #content{padding:20px 16px calc(96px + env(safe-area-inset-bottom)) 16px;}
+    h1.pagetitle{font-size:22px;}
+    p.pagesub{font-size:11.5px;}
+    .g4,.g3{grid-template-columns:repeat(2,1fr);}
+    .g2{grid-template-columns:1fr;}
+    .grid{gap:10px;}
+    .tile{padding:13px 14px;}
+    .tile .val{font-size:19px;}
+    .tile .val.sm{font-size:15px;}
+    .tile .val.md{font-size:16px;}
+    .tile .sub{font-size:10px;}
+    .panel{padding:16px 15px;overflow-x:auto;}
+    .row{gap:0;}
+    .row > div{min-width:100%;}
+    .chartWrap{height:235px;}
+    .flexBetween{flex-wrap:wrap;gap:8px;}
+    .hide-sm{display:none !important;}
+    .modal{width:100%;max-width:100vw;max-height:100vh;height:100%;border-radius:0;
+      padding:calc(18px + env(safe-area-inset-top)) 20px calc(26px + env(safe-area-inset-bottom)) 20px;}
+    #authOverlay{padding-top:calc(20px + env(safe-area-inset-top));
+      padding-bottom:calc(20px + env(safe-area-inset-bottom));}
+    input[type=text],input[type=number],input[type=date],input[type=password],select{
+      padding:12px 12px;font-size:16px;}
+    input.cellIn{width:92px;font-size:16px;}
+    .cfTable input,.cfTable select{font-size:16px;}
+    .cfTable input.cf-amt{width:96px;}
+    .cfTable input.cf-name{min-width:130px;}
+    .btn{padding:13px 18px;}
+    td,th{padding:8px 8px;font-size:11px;}
+  }
+</style>
+</head>
+<body>
+<div id="authOverlay"><div class="authBox" id="authBox">
+  <h2>Ferreira <em style="font-style:normal;color:var(--amber)">Wealth</em></h2>
+  <div class="sub2">Connecting…</div>
+</div></div>
+
+<header id="mobileBar">
+  <button id="burgerBtn" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg></button>
+  <div class="mWord">Ferreira <em>Wealth</em></div>
+  <div id="mSync" aria-hidden="true"></div>
+</header>
+<div id="drawerScrim"></div>
+<nav id="drawer" aria-label="All sections"></nav>
+
+<div id="app">
+  <aside id="sidebar" aria-label="Sections"></aside>
+  <div id="main">
+    <div id="ticker"><div id="tickerInner"></div><button class="eyeBtn" id="privacyBtn" aria-label="Toggle privacy mode">PRIVACY</button></div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<nav id="bottomBar" aria-label="Quick navigation"></nav>
+
+<div class="modalBg" id="entryModal">
+  <div class="modal">
+    <button class="closeX" onclick="closeModal()">✕</button>
+    <h3 id="entryModalTitle">New snapshot entry</h3>
+    <div id="entryForm"></div>
+    <button class="btn" onclick="saveEntry()">Save entry</button>
+    <button class="btn secondary" onclick="closeModal()" style="margin-left:8px;">Cancel</button>
+  </div>
+</div>
+<script>
+/* =========================================================================
+   FERREIRA WEALTH OS — single-file app
+   Sections: config · seed state · helpers · classification · projections ·
+   persistence/auth · nav shell · pages · property engine · boot
+========================================================================= */
+
+/* ------------------------- SUPABASE CONFIG ----------------------------- */
+const SUPABASE_URL      = "https://vxvdfduynwpszffhojld.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_GoxF1CPFqlVNw-7CGsyFCQ_b-vE-yX_";
+const CACHE_KEY = 'wealthTerminalCache';
+const PRIVACY_KEY = 'fwPrivacy'; // per-device, never synced
+
+/* ------------------------- SEED / DEMO STATE ---------------------------
+   These are the household's starter values. They appear before login or
+   for a brand-new household; real ongoing data lives in Supabase after
+   sign-in and simply overwrites matching keys. Never delete these.      */
+/* NOTE: every value below is a fictitious placeholder for demo purposes —
+   not real financial data. Anyone signing up for a new household starts
+   from these numbers and edits them to make the app their own.          */
+let state = {
+  snapshots: [
+    {date:"2026-07-01", period:"Month", cashSavings:14000, cashBuffer:1800.50, offset:3200.00,
+     jointKernel:2600, babyCash:900.25, babyKernel:410.60, hatch:9400.15, duardKS:21800.40,
+     hollyKS:17650, bankValue:640000, marketValue:610000, mortgage:468500.00, carsValue:21000,
+     holidaySavings:350, otherDebts:0, notes:"Starter row"}
+  ],
+  assumptions: {
+    investReturn:0.08, cashReturn:0.03, mortgageRate:0.06, fireTarget:1500000,
+    safeWithdrawal:0.04, babyFundTarget:60000, lifestyleDepositTarget:150000,
+    propertyGrowth:0.03, annualContribution:12000, horizon:30,
+    realisticSaleValue:610000, sellingCosts:22000,
+    emergencyFundTarget:20000, offsetTarget:30000, investTarget:60000,
+    babyCashTarget:5000, babyBirthDate:"", babyCashoutAge:18,
+    babyMonthlyContribution:0,
+    // Property decision engine (estimates — edit on Assumptions)
+    hbPrice:650000, hbDepositPct:0.20, hbRentPaidFortnightly:550,
+    hbPropertyGrowth:0.03, hbRatesAnnual:3000, hbInsuranceAnnual:1500,
+    maintenanceAnnual:2500, mortgageYearsRemaining:26,
+    // FIRE configuration
+    includeKiwiSaverInFIRE:false, includeCommittedInFIRE:false,
+    // Goal target dates
+    goalDates:{offset:"2028-03-31", emergency:"2026-12-31", invest:"2032-12-31",
+      babyCash:"2027-12-31", babyFund:"2044-12-31", deposit:"2032-12-31", fire:"2050-12-31"}
+  },
+  income: {
+    pretaxH:82000, pretaxD:91000, posttaxFortH:2620.00, posttaxFortD:2870.00,
+    mortgageFortnightly:1480.00, rentExpectedFortnightly:780.00, rentReceivedFortnightly:780.00
+  },
+  kiwisaver: { rateH:0.03, rateD:0.03, employerMatch:true },
+  ratesInsurance: {
+    rates:3200.00, ratesFreq:"annual", ratesPaidAs:"Paid quarterly",
+    landlordInsurance:1350.00, landlordFreq:"annual", landlordPaidAs:"Paid annually",
+    contentsInsurance:45, contentsFreq:"monthly-rate", contentsPaidAs:"Paid monthly",
+    lifeInsurance:620.00, lifeFreq:"annual", lifeNote:"Split evenly between both partners by direct debit"
+  },
+  budget: {
+    scenarios: ["Partner A Current ($82,000)", "Partner B Current ($91,000)", "Combined Scenario ($173,000)"],
+    rows: [
+      {item:"Income", account:"Everyday", vals:[2210.00, 2410.00, 2980.00]},
+      {item:"Mortgage", account:"Home Loan", vals:[740.00, 850.00, 500.00]},
+      {item:"Second property rent top-up", account:"", vals:[null, null, 40]},
+      {item:"Internet", account:"Rates & House Bills", vals:[95, 95, 95]},
+      {item:"Power", account:"Rates & House Bills", vals:[null, null, null]},
+      {item:"Rates", account:"Rates & House Bills", vals:[null, null, null]},
+      {item:"Home & Contents", account:"Rates & House Bills", vals:[null, null, null]},
+      {item:"Bins", account:"Rates & House Bills", vals:[null, null, null]},
+      {item:"Petrol", account:"Transport", vals:[90, 90, 75]},
+      {item:"Shared Food", account:"Household Expenses", vals:[180, 110, 180]},
+      {item:"Phone Bill (27th)", account:"Direct Debit", vals:[65, 15, 65]},
+      {item:"Car Insurance (fortnight)", account:"Direct Debit", vals:[null, 35, null]},
+      {item:"Life insurance (fortnight)", account:"Direct Debit", vals:[null, null, null]},
+      {item:"Gym (fortnight)", account:"Direct Debit", vals:[null, null, null]},
+      {item:"Shared Emergency", account:"Shared Emergency", vals:[20, 20, 20]}
+    ],
+    lifeSavings: [150, 300, 1900],
+    statedTotalAfterExpenses: [1050.00, 1180.00, 2100.00],
+    statedTotalAfterSavings: [480.00, 640.00, 300.00]
+  },
+  cashflow: {
+    items: [
+      {id:'cf1', name:"Partner A pay", owner:"Holly", type:"in", cat:"Income", amount:2980.00, freq:"fortnightly"},
+      {id:'cf2', name:"Partner B pay", owner:"Duard", type:"in", cat:"Income", amount:2870.00, freq:"fortnightly"},
+      {id:'cf3', name:"Rent received (second property)", owner:"Joint", type:"in", cat:"Income", amount:780.00, freq:"fortnightly"},
+      {id:'cf4', name:"Mortgage", owner:"Joint", type:"out", cat:"Housing", amount:1480.00, freq:"fortnightly"},
+      {id:'cf5', name:"Council rates", owner:"Joint", type:"out", cat:"Housing", amount:3200.00, freq:"yearly"},
+      {id:'cf6', name:"Landlord insurance", owner:"Joint", type:"out", cat:"Insurance", amount:1350.00, freq:"yearly"},
+      {id:'cf7', name:"Contents insurance", owner:"Joint", type:"out", cat:"Insurance", amount:45, freq:"monthly"},
+      {id:'cf8', name:"Life insurance", owner:"Holly", type:"out", cat:"Insurance", amount:23.85, freq:"fortnightly"},
+      {id:'cf9', name:"Internet & house bills", owner:"Joint", type:"out", cat:"Utilities", amount:95, freq:"fortnightly"},
+      {id:'cf10', name:"Petrol", owner:"Holly", type:"out", cat:"Transport", amount:75, freq:"fortnightly"},
+      {id:'cf11', name:"Petrol", owner:"Duard", type:"out", cat:"Transport", amount:90, freq:"fortnightly"},
+      {id:'cf12', name:"Groceries / shared food", owner:"Holly", type:"out", cat:"Food", amount:180, freq:"fortnightly"},
+      {id:'cf13', name:"Groceries / shared food", owner:"Duard", type:"out", cat:"Food", amount:110, freq:"fortnightly"},
+      {id:'cf14', name:"Phone", owner:"Holly", type:"out", cat:"Utilities", amount:65, freq:"monthly"},
+      {id:'cf15', name:"Phone", owner:"Duard", type:"out", cat:"Utilities", amount:15, freq:"fortnightly"},
+      {id:'cf16', name:"Car insurance", owner:"Duard", type:"out", cat:"Insurance", amount:35, freq:"fortnightly"},
+      {id:'cf17', name:"Shared emergency transfer", owner:"Holly", type:"out", cat:"Savings", amount:20, freq:"fortnightly"},
+      {id:'cf18', name:"Shared emergency transfer", owner:"Duard", type:"out", cat:"Savings", amount:20, freq:"fortnightly"}
+    ]
+  },
+  birthDates: { duard:"1994-03-12", holly:"1993-08-25" },
+  birthDate: "1994-03-12", // legacy key, kept for older saved data
+  profile: {
+    nameA:"Partner A", nameB:"Partner B", babyName:"",
+    cityHome:"your current city", citySecond:"the second city"
+  },
+  valuationBasis: "market"
+};
+const DEFAULT_STATE = JSON.parse(JSON.stringify(state));
+
+/* deep-merge cloud data over defaults so new fields survive old saves */
+function mergeState(cloud){
+  if(!cloud || typeof cloud !== 'object') return;
+  for(const k of Object.keys(cloud)){
+    const v = cloud[k];
+    if(Array.isArray(v)) state[k] = v;
+    else if(v && typeof v === 'object' && state[k] && typeof state[k] === 'object' && !Array.isArray(state[k])){
+      state[k] = Object.assign({}, state[k], v);
+      // one level deeper for nested objects like goalDates
+      for(const k2 of Object.keys(v)){
+        if(v[k2] && typeof v[k2]==='object' && !Array.isArray(v[k2]) && DEFAULT_STATE[k] && DEFAULT_STATE[k][k2] && typeof DEFAULT_STATE[k][k2]==='object'){
+          state[k][k2] = Object.assign({}, DEFAULT_STATE[k][k2], v[k2]);
+        }
+      }
+    } else state[k] = v;
+  }
+  // migrations
+  (state.cashflow.items||[]).forEach((it,i)=>{
+    if(!it.id) it.id = 'cf_m'+i;
+    if(!it.cat) it.cat = it.type==='in' ? 'Income' : 'General';
+  });
+  // If this cloud save predates the birthDates object, rebuild it from the
+  // real legacy birthDate rather than leaving today's fake seed default in place.
+  if(!cloud.birthDates && cloud.birthDate){
+    state.birthDates = Object.assign({}, state.birthDates, {duard: cloud.birthDate});
+  }
+}
+
+/* ----------------------------- HELPERS --------------------------------- */
+const $ = sel => document.querySelector(sel);
+let PRIVACY = false;
+try{ PRIVACY = localStorage.getItem(PRIVACY_KEY)==='1'; }catch(e){}
+
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function num(v, fallback){ const n = parseFloat(v); return Number.isFinite(n) ? n : (fallback||0); }
+function clampNum(v, min, max, fallback){
+  const n = parseFloat(v);
+  if(!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+const moneyRaw = n => (n===null||n===undefined||isNaN(n)) ? "-" :
+  (n<0 ? "-$"+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:0}) :
+   "$"+n.toLocaleString(undefined,{maximumFractionDigits:0}));
+const money = n => PRIVACY ? (n===null||n===undefined||isNaN(n) ? "-" : "$ •••") : moneyRaw(n);
+const pct = n => (n===null||n===undefined||isNaN(n)) ? "-" : (n*100).toFixed(1)+"%";
+const fmtDate = d => { if(!d) return "-"; const dt=new Date(d); return isNaN(dt) ? esc(d) : dt.toLocaleDateString('en-NZ',{year:'numeric',month:'short',day:'2-digit'}); };
+function ageOf(dateStr, on){
+  const bd = new Date(dateStr), t = on ? new Date(on) : new Date();
+  let a = t.getFullYear()-bd.getFullYear();
+  if(t.getMonth()<bd.getMonth() || (t.getMonth()===bd.getMonth() && t.getDate()<bd.getDate())) a--;
+  return a;
+}
+const duardAge = () => ageOf(state.birthDates.duard);
+const hollyAge = () => ageOf(state.birthDates.holly);
+function personLabel(who){
+  const p = state.profile||{};
+  if(who==='Duard') return p.nameB || 'Partner B';
+  if(who==='Holly') return p.nameA || 'Partner A';
+  if(who==='Joint') return 'Joint';
+  return who;
+}
+function babyLabel(){ return (state.profile&&state.profile.babyName) ? state.profile.babyName+"'s fund" : "Baby fund"; }
+function cityHome(){ return (state.profile&&state.profile.cityHome) || 'your current city'; }
+function citySecond(){ return (state.profile&&state.profile.citySecond) || 'the second city'; }
+
+/* frequency conversion — one source of truth */
+const FREQ = {weekly:52, fortnightly:26, monthly:12, quarterly:4, yearly:1};
+const FREQ_LABEL = {weekly:'Week', fortnightly:'Fortnight', monthly:'Month', quarterly:'Quarter', yearly:'Year'};
+function toAnnual(amount, freq){ return (Number(amount)||0) * (FREQ[freq]||26); }
+function fromAnnual(annual, freq){ return annual / (FREQ[freq]||26); }
+const cfAnnual = it => toAnnual(it.amount, it.freq);
+
+function sortedSnaps(){ return [...state.snapshots].filter(s=>s.date).sort((a,b)=> new Date(a.date)-new Date(b.date)); }
+function latest(){ const s = sortedSnaps(); return s.length ? s[s.length-1] : null; }
+function nBack(n){ const s = sortedSnaps(); const i = s.length-1-n; return i>=0 ? s[i] : null; }
+function yoy(){
+  const s = sortedSnaps(); if(!s.length) return null;
+  const target = new Date(s[s.length-1].date); target.setMonth(target.getMonth()-12);
+  let c=null; for(const r of s){ if(new Date(r.date) <= target) c=r; } return c;
+}
+function propValue(s){ return state.valuationBasis==="bank" ? (s.bankValue||0) : (s.marketValue||0); }
+
+/* --------------------- ASSET CLASSIFICATION ENGINE ---------------------
+   One function, one meaning. Everything on every page derives from this.
+   netWorth       — everything you own minus everything you owe
+   investable     — cash + offset + Joint Kernel + Hatch (deployable money)
+   fireAssets     — investable (+ KiwiSaver only if toggled on)
+   locked         — KiwiSaver (retirement-locked, shown separately)
+   babyFund       — Baby cash + Baby Kernel (ring-fenced, never FIRE)
+   committed      — baby / house-deposit pool / emergency / offset views   */
+function classify(l){
+  if(!l) return null;
+  const cash = (l.cashSavings||0) + (l.cashBuffer||0);
+  const offset = l.offset||0;
+  const investable = cash + offset + (l.jointKernel||0) + (l.hatch||0);
+  const locked = (l.duardKS||0) + (l.hollyKS||0);
+  const babyFund = (l.babyCash||0) + (l.babyKernel||0);
+  const propEquity = propValue(l) - (l.mortgage||0);
+  const totalAssets = cash + offset + (l.jointKernel||0) + (l.hatch||0) + locked + babyFund +
+    propValue(l) + (l.carsValue||0) + (l.holidaySavings||0);
+  const totalLiabilities = (l.mortgage||0) + (l.otherDebts||0);
+  const netWorth = totalAssets - totalLiabilities;
+  const a = state.assumptions;
+  let fireAssets = investable;
+  if(a.includeKiwiSaverInFIRE) fireAssets += locked;
+  return {
+    netWorth, totalAssets, totalLiabilities, investable, locked, babyFund, propEquity,
+    fireAssets,
+    committed: {
+      baby: babyFund,
+      deposit: (l.cashSavings||0) + offset,
+      emergency: l.cashSavings||0,
+      offset: offset,
+      holiday: l.holidaySavings||0
+    }
+  };
+}
+
+/* ------------------------- FINANCE PRIMITIVES -------------------------- */
+function pmtAnnual(principal, rate, years){
+  if(principal<=0) return 0;
+  if(rate<=0) return principal/Math.max(1,years);
+  return principal * rate / (1 - Math.pow(1+rate, -years));
+}
+function amortizePath(balance, rate, annualPayment, years){
+  const path=[balance]; let interestY1=0, principalY1=0, b=balance;
+  for(let y=1;y<=years;y++){
+    const interest = b*rate;
+    const principal = Math.min(b, Math.max(0, annualPayment - interest));
+    if(y===1){ interestY1=interest; principalY1=principal; }
+    b = Math.max(0, b - principal);
+    path.push(b);
+  }
+  return {path, interestY1, principalY1};
+}
+function ksAnnualTotal(){
+  const k=state.kiwisaver, inc=state.income;
+  const m = k.employerMatch ? 2 : 1;
+  return inc.pretaxH*k.rateH*m + inc.pretaxD*k.rateD*m;
+}
+function cashflowAnnual(){
+  const all = state.cashflow.items;
+  const inA  = all.filter(i=>i.type==='in').reduce((s,i)=>s+cfAnnual(i),0);
+  const outA = all.filter(i=>i.type==='out').reduce((s,i)=>s+cfAnnual(i),0);
+  return {inA, outA, net: inA-outA, rate: inA ? (inA-outA)/inA : 0};
+}
+
+/* --------------------------- PROJECTION CORE ---------------------------
+   One engine drives Projections, Scenarios, FIRE, Goals milestones and
+   the Property Decision Engine's investment leg.                        */
+function projectWealth(opts){
+  const o = Object.assign({years:45, rAdj:0, contribOverride:null}, opts||{});
+  const l = latest(); if(!l) return null;
+  const k = classify(l); const a = state.assumptions;
+  const r = Math.max(0, a.investReturn + o.rAdj);
+  const contrib = o.contribOverride!==null ? o.contribOverride : a.annualContribution;
+  const ksC = ksAnnualTotal();
+  const mortPay = state.income.mortgageFortnightly*26;
+  const am = amortizePath(l.mortgage||0, a.mortgageRate, mortPay, o.years);
+  let fire=k.fireAssets, locked=k.locked, baby=k.babyFund;
+  const out = {fire:[fire], locked:[locked], baby:[baby], prop:[k.propEquity], nw:[k.netWorth]};
+  const flat = (l.carsValue||0) + (l.holidaySavings||0);
+  const lockedInFire = a.includeKiwiSaverInFIRE; // if on, "fire" already contains KS; don't double-count
+  for(let n=1;n<=o.years;n++){
+    fire   = fire*(1+r) + contrib + (lockedInFire ? ksC : 0);
+    locked = locked*(1+r) + ksC;
+    baby   = baby*(1+r) + a.babyMonthlyContribution*12;
+    const prop = propValue(l)*Math.pow(1+a.propertyGrowth, n) - am.path[n];
+    out.fire.push(fire); out.locked.push(locked); out.baby.push(baby); out.prop.push(prop);
+    out.nw.push(fire + (lockedInFire ? 0 : locked) + baby + prop + flat);
+  }
+  return out;
+}
+function yearsUntil(series, target){
+  for(let n=0;n<series.length;n++){ if(series[n]>=target) return n; }
+  return null;
+}
+
+/* FIRE mathematics */
+function fireNumbers(){
+  const l = latest(); if(!l) return null;
+  const k = classify(l); const a = state.assumptions;
+  const cf = cashflowAnnual();
+  const spendBase = Math.max(1, cf.outA);
+  const swr = a.safeWithdrawal || 0.04;
+  const targets = {
+    lean: Math.round(spendBase*0.8/swr),
+    base: Math.round(spendBase/swr),
+    fat:  Math.round(spendBase*1.3/swr),
+    set:  a.fireTarget
+  };
+  const p = projectWealth({});
+  const yrsSet  = p ? yearsUntil(p.fire, targets.set)  : null;
+  const yrsLean = p ? yearsUntil(p.fire, targets.lean) : null;
+  const yrsBase = p ? yearsUntil(p.fire, targets.base) : null;
+  const yrsFat  = p ? yearsUntil(p.fire, targets.fat)  : null;
+  const passive = k.fireAssets * swr;
+  const aD = duardAge(), aH = hollyAge();
+  const yearsTo65 = Math.max(1, 65 - Math.min(aD,aH));
+  const coastNumber = targets.base / Math.pow(1+a.investReturn, yearsTo65);
+  return {k, swr, spendBase, targets, yrsSet, yrsLean, yrsBase, yrsFat, passive,
+    coastNumber, coastReached: k.fireAssets>=coastNumber, aD, aH};
+}
+
+/* --------------------- PROPERTY DECISION ENGINE ------------------------ */
+function propertyScenarios(){
+  const l = latest(); if(!l) return null;
+  const a = state.assumptions, ri = state.ratesInsurance, inc = state.income;
+  const k = classify(l);
+  const mkt = l.marketValue||0, mort = l.mortgage||0;
+  const rentIn = inc.rentReceivedFortnightly*26;
+  const hbRentOut = a.hbRentPaidFortnightly*26;
+  const wgtnCostsOwn = ri.rates + ri.landlordInsurance + a.maintenanceAnnual; // holding costs excl. mortgage
+  const contentsA = ri.contentsInsurance*12;
+  const hbCostsOwn = a.hbRatesAnnual + a.hbInsuranceAnnual + a.maintenanceAnnual;
+  const mortPay = inc.mortgageFortnightly*26;
+  const yrs = a.mortgageYearsRemaining;
+  const requiredDep = a.hbPrice * a.hbDepositPct;
+  const depositPool = (l.cashSavings||0) + (l.offset||0);
+  const proceeds = mkt - a.sellingCosts - mort; // can be negative
+
+  function investPath(invest0, annualContrib, years){
+    let v = invest0; const p=[v];
+    for(let n=1;n<=years;n++){ v = v*(1+a.investReturn) + annualContrib; p.push(v); }
+    return p;
+  }
+  function ownPath(value0, growth, mort0, pay, years){
+    const am = amortizePath(mort0, a.mortgageRate, pay, years);
+    const p=[]; for(let n=0;n<=years;n++){ p.push(value0*Math.pow(1+growth,n) - am.path[n]); }
+    return {p, am};
+  }
+  const constants = n => k.locked*Math.pow(1+a.investReturn,n) + k.babyFund*Math.pow(1+a.investReturn,n) + (l.carsValue||0) + (l.holidaySavings||0);
+
+  const base = state.assumptions.annualContribution; // scenario A investing pace
+  const scen = {};
+
+  // A — Rentvest: keep the home property rented out, rent in the second city
+  {
+    const cost = mortPay + wgtnCostsOwn + hbRentOut - rentIn;
+    const own = ownPath(mkt, a.propertyGrowth, mort, mortPay, 10);
+    const inv = investPath(k.investable, base, 10);
+    scen.A = {name:'Rentvest', desc:'Keep '+cityHome()+' as a rental, rent in '+citySecond()+', keep investing.',
+      cost, invest:inv, prop:own.p, gap:0, debt:mort, feasible:true,
+      flex:7, life:6, risk:5};
+  }
+  // B — Sell the home property, buy in the second city
+  {
+    const liquid = k.investable + proceeds; // everything freed up after sale (can be negative)
+    const gap = Math.max(0, requiredDep - liquid);
+    const depositApplied = Math.max(0, Math.min(a.hbPrice, liquid)); // only money that actually exists
+    const newMort = Math.max(0, a.hbPrice - depositApplied);
+    const newPay = pmtAnnual(newMort, a.mortgageRate, 30);
+    const cost = newPay + a.hbRatesAnnual + contentsA + a.maintenanceAnnual;
+    const invest0 = Math.max(0, liquid - depositApplied);
+    const costDelta = scen.A.cost - cost;
+    const own = ownPath(a.hbPrice, a.hbPropertyGrowth, newMort, newPay, 10);
+    const inv = investPath(invest0, base + costDelta, 10);
+    scen.B = {name:'Sell & buy in '+citySecond(), desc:'Sell '+cityHome()+' at market value, clear the mortgage, buy in '+citySecond()+'.',
+      cost, invest:inv, prop:own.p, gap, debt:newMort, feasible:gap<=0,
+      proceeds, newMort, newPay, flex:4, life:9, risk:6 + (gap>0?2:0)};
+  }
+  // C — Keep the home property AND buy a second house in the second city
+  {
+    const gap = Math.max(0, requiredDep - depositPool);
+    const depositApplied = Math.min(depositPool, a.hbPrice); // only real money
+    const newMort = Math.max(0, a.hbPrice - depositApplied);
+    const newPay = pmtAnnual(newMort, a.mortgageRate, 30);
+    const cost = mortPay + wgtnCostsOwn - rentIn + newPay + hbCostsOwn + contentsA;
+    const costDelta = scen.A.cost - cost;
+    const ownW = ownPath(mkt, a.propertyGrowth, mort, mortPay, 10);
+    const ownH = ownPath(a.hbPrice, a.hbPropertyGrowth, newMort, newPay, 10);
+    const inv = investPath(Math.max(0, k.investable - depositApplied), base + costDelta, 10);
+    scen.C = {name:'Keep '+cityHome()+' + buy second', desc:'Keep '+cityHome()+' rented, buy in '+citySecond()+' on top.',
+      cost, invest:inv, prop:ownW.p.map((v,i)=>v+ownH.p[i]), gap,
+      debt:mort+newMort, feasible:gap<=0, newMort, newPay, flex:2, life:8, risk:8 + (gap>0?1:0)};
+  }
+  // D — Sell the home property, rent, invest everything
+  {
+    const invest0 = Math.max(0, k.investable + proceeds);
+    const cost = hbRentOut;
+    const costDelta = scen.A.cost - cost;
+    const inv = investPath(invest0, base + costDelta, 10);
+    scen.D = {name:'Rent & invest', desc:'Sell '+cityHome()+', keep renting, put everything into investments.',
+      cost, invest:inv, prop:inv.map(()=>0), gap:0, debt:0, feasible:true,
+      proceeds, flex:9, life:5, risk:3};
+  }
+
+  for(const key of ['A','B','C','D']){
+    const s = scen[key];
+    s.nw5  = s.invest[5]  + s.prop[5]  + constants(5);
+    s.nw10 = s.invest[10] + s.prop[10] + constants(10);
+    s.cashMo = s.cost/12;
+  }
+  const ranked = ['A','B','C','D'].sort((x,y)=> scen[y].nw10 - scen[x].nw10);
+  return {scen, ranked, requiredDep, depositPool, proceeds, mortPay, rentIn, wgtnCostsOwn};
+}
+
+/* ------------------------ PERSISTENCE & AUTH --------------------------- */
+let sb=null, myUserId=null, myEmail="", householdId=null, householdName="", joinCode="", rtChannel=null;
+const isConfigured = () => SUPABASE_URL.startsWith("https://") && SUPABASE_ANON_KEY.length > 40;
+
+function setSaveState(msg){ const el=$('#saveState'); if(el) el.textContent = msg; }
+function authUI(html){ $('#authOverlay').style.display='flex'; $('#authBox').innerHTML=html; }
+function hideAuth(){ $('#authOverlay').style.display='none'; }
+function authMsg(msg, isErr){ const el=$('#authMsg'); if(el){ el.textContent=msg; el.className=isErr?'err':''; el.id='authMsg'; } }
+
+function configScreen(){
+  return `<h2>Setup needed</h2>
+  <div class="sub2">This copy isn't connected to Supabase yet.</div>
+  <p style="font-size:12px;line-height:1.6;">Open this file in a text editor and paste your Project URL and publishable key into the two config lines near the top of the script. Note: anything hosted on GitHub Pages has publicly readable source — that's fine, because your real data lives in Supabase behind your logins, never in this file.</p>`;
+}
+function loginScreen(mode){
+  const signup = mode==='signup';
+  return `<h2>${signup?'Create your account':'Welcome back'}</h2>
+  <div class="sub2">${signup?'Set up your household — you can invite your partner once you\'re in.':'Ferreira Wealth OS — private household finances'}</div>
+  <label>Email</label><input type="text" id="a_email" autocomplete="username" inputmode="email">
+  <label>Password</label><input type="password" id="a_pass" autocomplete="${signup?'new-password':'current-password'}">
+  <button class="btn" onclick="${signup?'doSignUp()':'doSignIn()'}">${signup?'Create account':'Sign in'}</button>
+  <button class="authLink" onclick="authUI(loginScreen('${signup?'signin':'signup'}'))">${signup?'Already have an account? Sign in':'First time? Create an account'}</button>
+  <div id="authMsg"></div>
+  <div class="sub2" style="margin-top:16px;border-top:1px solid var(--grid-soft);padding-top:12px;">Until you sign in, you're viewing the household's seed/demo values. Nothing you see here is stored anywhere public.</div>`;
+}
+function householdScreen(){
+  return `<h2>Your household</h2>
+  <div class="sub2">Signed in as ${esc(myEmail)}. Link up with your partner:</div>
+  <label>Create a new household (first person does this)</label>
+  <input type="text" id="h_name" placeholder="e.g. Ferreira Family" value="Ferreira Family">
+  <button class="btn" onclick="doCreateHousehold()">Create household</button>
+  <div style="border-top:1px solid var(--grid);margin:18px 0 6px 0;"></div>
+  <label>Or join with your partner's invite code</label>
+  <input type="text" id="h_code" placeholder="6-character code" style="text-transform:uppercase;">
+  <button class="btn secondary" onclick="doJoinHousehold()">Join household</button>
+  <button class="authLink" onclick="doSignOut()">Sign out</button>
+  <div id="authMsg"></div>`;
+}
+function accountScreen(){
+  return `<h2>Account &amp; invite</h2>
+  <div class="sub2">${esc(myEmail)} · ${esc(householdName||'household')}</div>
+  <label>Invite code — give this to your partner so they can join</label>
+  <div class="codeBig">${esc(joinCode||'—')}</div>
+  <button class="btn secondary" onclick="navigator.clipboard && navigator.clipboard.writeText('${esc(joinCode)}'); authMsg('Copied to clipboard.')">Copy code</button>
+  <button class="btn secondary" onclick="hideAuth()">Back to the app</button>
+  <button class="authLink" onclick="doSignOut()">Sign out</button>
+  <div id="authMsg"></div>`;
+}
+
+async function doSignUp(){
+  const email=($('#a_email').value||'').trim(), pass=$('#a_pass').value||'';
+  if(!email || pass.length<6){ authMsg('Enter an email and a password of at least 6 characters.', true); return; }
+  authMsg('Creating account…');
+  const { data, error } = await sb.auth.signUp({ email, password: pass });
+  if(error){ authMsg(error.message, true); return; }
+  if(!data.session){ authMsg('Account created — check your email for a confirmation link, then come back and sign in.'); }
+}
+async function doSignIn(){
+  const email=($('#a_email').value||'').trim(), pass=$('#a_pass').value||'';
+  authMsg('Signing in…');
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if(error){ authMsg(error.message, true); }
+}
+async function doSignOut(){
+  if(rtChannel){ try{ sb.removeChannel(rtChannel); }catch(e){} rtChannel=null; }
+  householdId=null; joinCode=""; householdName="";
+  await sb.auth.signOut();
+}
+async function doCreateHousehold(){
+  const name=($('#h_name').value||'').trim();
+  authMsg('Creating…');
+  const { error } = await sb.rpc('create_household', { p_name: name });
+  if(error){ authMsg(error.message, true); return; }
+  await enterHousehold();
+  authUI(accountScreen());
+  authMsg('Household created. Give this code to your partner so they can join — it lives under Account & invite whenever you need it.');
+}
+async function doJoinHousehold(){
+  const code=($('#h_code').value||'').trim().toUpperCase();
+  if(code.length<4){ authMsg('Enter the 6-character invite code.', true); return; }
+  authMsg('Joining…');
+  const { error } = await sb.rpc('join_household', { p_code: code });
+  if(error){ authMsg(error.message.includes('Invalid')?'Invalid invite code — double-check it with your partner.':error.message, true); return; }
+  await enterHousehold();
+}
+async function enterHousehold(){
+  const { data: mem, error } = await sb.from('household_members')
+    .select('household_id, households(name, join_code)').eq('user_id', myUserId).limit(1);
+  if(error){ authMsg(error.message, true); return; }
+  if(!mem || !mem.length){ authUI(householdScreen()); return; }
+  householdId = mem[0].household_id;
+  householdName = (mem[0].households && mem[0].households.name) || "";
+  joinCode = (mem[0].households && mem[0].households.join_code) || "";
+  await loadCloudState();
+  startRealtime();
+  hideAuth();
+  render();
+}
+async function loadCloudState(){
+  try{
+    const { data, error } = await sb.from('household_data').select('data').eq('household_id', householdId).single();
+    if(error) throw error;
+    if(data && data.data && Object.keys(data.data).length){
+      mergeState(data.data);
+      setSaveState('Cloud data loaded');
+    } else {
+      setSaveState('New household — seed values saved to cloud');
+      persistNow();
+    }
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify(state)); }catch(e){}
+  }catch(e){
+    try{
+      const raw = localStorage.getItem(CACHE_KEY);
+      if(raw) mergeState(JSON.parse(raw));
+      setSaveState('Offline — showing this device\'s cached copy');
+    }catch(e2){ setSaveState('Could not load cloud data'); }
+  }
+}
+let saveTimer=null;
+function persist(){
+  setSaveState('Saving…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persistNow, 500);
+}
+async function persistNow(){
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify(state)); }catch(e){}
+  if(!sb || !householdId){ setSaveState('Not signed in — saved on this device only'); return; }
+  const { error } = await sb.from('household_data')
+    .update({ data: state, updated_at: new Date().toISOString(), updated_by: myUserId })
+    .eq('household_id', householdId);
+  if(error){ setSaveState('Cloud save failed — kept a local copy'); }
+  else { setSaveState('Synced ' + new Date().toLocaleTimeString()); }
+}
+function startRealtime(){
+  if(rtChannel){ try{ sb.removeChannel(rtChannel); }catch(e){} }
+  rtChannel = sb.channel('household-' + householdId)
+    .on('postgres_changes',
+      { event:'UPDATE', schema:'public', table:'household_data', filter:'household_id=eq.'+householdId },
+      payload => {
+        const row = payload.new;
+        if(row && row.updated_by && row.updated_by !== myUserId){
+          mergeState(row.data || {});
+          render();
+          setSaveState('Live update from ' + esc(householdName||'your household'));
+        }
+      })
+    .subscribe();
+}
+
+/* ---------------------------- NAV SHELL --------------------------------- */
+const ICONS = {
+ home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+ review:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+ trend:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>',
+ chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>',
+ flame:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3c1 4-4 5.5-4 9.5a4 4 0 0 0 8 0c0-1.5-.7-2.6-1.5-3.5-.3 1-.9 1.6-1.8 2C13 9 14 6 12 3z"/><path d="M12 21a7 7 0 0 1-7-7c0-2 .8-3.7 1.8-5"/><path d="M19 14a7 7 0 0 1-7 7"/></svg>',
+ compass:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>',
+ layers:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>',
+ target:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>',
+ baby:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M9.5 14.5c.8.7 1.6 1 2.5 1s1.7-.3 2.5-1"/><path d="M12 3c-1 1-1 2.5 0 3.5"/></svg>',
+ list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3.5 6h.01"/><path d="M3.5 12h.01"/><path d="M3.5 18h.01"/></svg>',
+ flow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10 3 14l4 4"/><path d="M3 14h11"/><path d="m17 4 4 4-4 4"/><path d="M21 8H10"/></svg>',
+ wallet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2"/><path d="M3 7v11a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2z"/><path d="M16.5 14.5h.01"/></svg>',
+ coins:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v6c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V6"/><path d="M4.5 12v6c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-6"/></svg>',
+ house:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-7h6v7"/></svg>',
+ scale:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 7h14"/><path d="m5 7-2.5 6a3 3 0 0 0 5 0z"/><path d="m19 7-2.5 6a3 3 0 0 0 5 0z"/><path d="M8 21h8"/></svg>',
+ sliders:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h10"/><path d="M18 8h2"/><circle cx="16" cy="8" r="2"/><path d="M4 16h2"/><path d="M10 16h10"/><circle cx="8" cy="16" r="2"/></svg>',
+ pulse:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 5 14 2.5-7h4"/></svg>',
+ menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>'
+};
+
+const NAV = [
+  {label:'Overview'},
+  {tab:'dash', name:'Dashboard', icon:'home'},
+  {tab:'review', name:'Monthly review', icon:'review'},
+  {tab:'trends', name:'Trends', icon:'trend'},
+  {tab:'benchmark', name:'Benchmark', icon:'chart'},
+  {label:'Wealth'},
+  {tab:'fire', name:'FIRE', icon:'flame'},
+  {tab:'proj', name:'Projections', icon:'compass'},
+  {tab:'scenarios', name:'Scenarios', icon:'layers'},
+  {tab:'goals', name:'Goals', icon:'target'},
+  {tab:'baby', name:'Baby fund', icon:'baby'},
+  {label:'Money'},
+  {tab:'log', name:'Snapshot log', icon:'list'},
+  {tab:'cashflow', name:'Cash flow', icon:'flow'},
+  {tab:'budget', name:'Budget', icon:'wallet'},
+  {tab:'income', name:'Income & KiwiSaver', icon:'coins'},
+  {label:'Property'},
+  {tab:'property', name:'Property', icon:'house'},
+  {tab:'decision', name:'Decision engine', icon:'scale'},
+  {label:'System'},
+  {tab:'assumptions', name:'Assumptions', icon:'sliders'},
+  {tab:'health', name:'Data health', icon:'pulse', badge:true}
+];
+
+function navHtml(){
+  return NAV.map(n => n.label
+    ? `<div class="navLabel">${n.label}</div>`
+    : `<button class="navbtn" data-tab="${n.tab}">${ICONS[n.icon]}${n.name}${n.badge?'<span class="navBadge" data-health-badge hidden>0</span>':''}</button>`
+  ).join('');
+}
+function footHtml(drawer){
+  const closer = drawer ? 'closeDrawer();' : '';
+  return `<div class="navfoot">
+    <button data-act="account" onclick="${closer}actAccount()">Account &amp; invite</button>
+    <button data-act="export" onclick="actExport()">Export backup</button>
+    <button data-act="import" onclick="actImport()">Import backup</button>
+    <button data-act="reset" onclick="${closer}actReset()">Reset data</button>
+    ${drawer?'':'<input type="file" id="importFile" accept="application/json" style="display:none"><div id="saveState">·</div>'}
+  </div>`;
+}
+const BRAND = `<div class="brand"><div class="word">Ferreira <em>Wealth</em></div>
+  <div class="sub"><span class="dot"></span>Household operating system</div></div>`;
+
+function buildChrome(){
+  $('#sidebar').innerHTML = BRAND + navHtml() + footHtml(false);
+  $('#drawer').innerHTML = BRAND + navHtml() + footHtml(true);
+  $('#bottomBar').innerHTML = `
+    <button class="navbtn" data-tab="dash">${ICONS.home}Home</button>
+    <button class="navbtn" data-tab="review">${ICONS.review}Review</button>
+    <button id="quickAdd" aria-label="Add snapshot entry">+</button>
+    <button class="navbtn" data-tab="log">${ICONS.list}Log</button>
+    <button id="menuBtn" aria-label="Open menu">${ICONS.menu}Menu</button>`;
+  document.querySelectorAll('.navbtn[data-tab]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ activeTab = btn.dataset.tab; render(); });
+  });
+  const drawer=$('#drawer'), scrim=$('#drawerScrim'), burger=$('#burgerBtn');
+  window.openDrawer = ()=>{ drawer.classList.add('open'); scrim.classList.add('show'); burger.setAttribute('aria-expanded','true'); };
+  window.closeDrawer = ()=>{ drawer.classList.remove('open'); scrim.classList.remove('show'); burger.setAttribute('aria-expanded','false'); };
+  burger.addEventListener('click', openDrawer);
+  scrim.addEventListener('click', closeDrawer);
+  $('#menuBtn').addEventListener('click', openDrawer);
+  drawer.querySelectorAll('.navbtn').forEach(b=> b.addEventListener('click', closeDrawer));
+  let swipeX=null;
+  drawer.addEventListener('touchstart', e=>{ swipeX=e.touches[0].clientX; }, {passive:true});
+  drawer.addEventListener('touchmove', e=>{
+    if(swipeX!==null && swipeX - e.touches[0].clientX > 55){ closeDrawer(); swipeX=null; }
+  }, {passive:true});
+  drawer.addEventListener('touchend', ()=>{ swipeX=null; });
+  $('#quickAdd').addEventListener('click', ()=>{
+    const ov=$('#authOverlay');
+    if(ov && getComputedStyle(ov).display!=='none') return;
+    openModal();
+  });
+  const pv = $('#privacyBtn');
+  pv.classList.toggle('on', PRIVACY);
+  pv.addEventListener('click', ()=>{
+    PRIVACY = !PRIVACY;
+    try{ localStorage.setItem(PRIVACY_KEY, PRIVACY?'1':'0'); }catch(e){}
+    pv.classList.toggle('on', PRIVACY);
+    render();
+  });
+  $('#importFile').addEventListener('change', onImportFile);
+}
+
+function actAccount(){ if(householdId) authUI(accountScreen()); }
+function actExport(){
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const el = document.createElement('a');
+  el.href = url; el.download = "ferreira_wealth_backup.json";
+  document.body.appendChild(el); el.click(); document.body.removeChild(el);
+}
+function actImport(){ $('#importFile').click(); }
+function onImportFile(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = evt=>{
+    try{ mergeState(JSON.parse(evt.target.result)); persist(); render(); alert("Backup imported."); }
+    catch(err){ alert("Could not read that file — is it a valid backup .json?"); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+function actReset(){
+  if(!confirm("Reset ALL data back to the household seed values? Export a backup first if you're unsure — this can't be undone.")) return;
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  persist(); render();
+}
+
+let charts = {};
+let activeTab = "dash";
+function render(){
+  document.querySelectorAll('.navbtn[data-tab]').forEach(b=> b.classList.toggle('active', b.dataset.tab===activeTab));
+  renderTicker();
+  updateHealthBadge();
+  const c = $('#content'); c.innerHTML = "";
+  const pages = {dash:renderDash, review:renderReview, trends:renderTrends, benchmark:renderBenchmark,
+    fire:renderFire, proj:renderProj, scenarios:renderScenarios, goals:renderGoals, baby:renderBaby,
+    log:renderLog, cashflow:renderCashflow, budget:renderBudget, income:renderIncome,
+    property:renderProperty, decision:renderDecision, assumptions:renderAssumptions, health:renderHealth};
+  (pages[activeTab]||renderDash)(c);
+}
+function renderTicker(){
+  const l = latest(); const t = $('#tickerInner');
+  if(!l){ t.innerHTML = "<span>No data yet — add your first snapshot.</span>"; return; }
+  const k = classify(l);
+  const prev = nBack(1);
+  const change = prev ? k.netWorth - classify(prev).netWorth : 0;
+  const arrow = change>0?"▲":change<0?"▼":"·";
+  const col = change>0?"var(--green)":change<0?"var(--red)":"var(--muted)";
+  const cf = cashflowAnnual();
+  t.innerHTML = `
+    <span>NET WORTH <b>${money(k.netWorth)}</b></span>
+    <span>CHANGE <b style="color:${col}">${arrow} ${money(Math.abs(change))}</b></span>
+    <span>INVESTABLE <b>${money(k.investable)}</b></span>
+    <span>FIRE ASSETS <b>${money(k.fireAssets)}</b></span>
+    <span>SAVINGS RATE <b>${pct(cf.rate)}</b></span>
+    <span>BASIS <b>${state.valuationBasis.toUpperCase()}</b></span>
+    <span>AS OF <b>${fmtDate(l.date)}</b></span>`;
+}
+function chartOptions(prefix){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    scales:{
+      x:{ticks:{color:'#8B929E', font:{family:'Inter', size:9}}, grid:{color:'#262B34'}},
+      y:{ticks:{color:'#8B929E', font:{family:'Inter', size:9},
+        callback:v=> PRIVACY ? '' : prefix+Number(v).toLocaleString()}, grid:{color:'#262B34'}}
+    },
+    plugins:{legend:{labels:{color:'#EAEAE6', font:{family:'Inter', size:10}}},
+      tooltip:{enabled:!PRIVACY}}
+  };
+}
+
+/* ------------------------------ DASHBOARD ------------------------------- */
+function renderDash(c){
+  const l = latest();
+  if(!l){ c.innerHTML = `<h1 class="pagetitle">Dashboard</h1><div class="banner info">No snapshot data yet. Add your first entry from the Snapshot log.</div>`; return; }
+  const k = classify(l);
+  const prev = nBack(1);
+  const change = prev ? k.netWorth - classify(prev).netWorth : null;
+  const cf = cashflowAnnual();
+  const insights = topInsights(3);
+  c.innerHTML = `
+    <div class="flexBetween">
+      <div><h1 class="pagetitle">Dashboard</h1>
+      <p class="pagesub">As of ${fmtDate(l.date)}. Four numbers matter: total net worth, the money you can actually deploy, the money driving early retirement, and how fast you're saving.</p></div>
+      <div class="toggle" id="valToggle">
+        <button data-v="market" class="${state.valuationBasis==='market'?'on':''}">Market value</button>
+        <button data-v="bank" class="${state.valuationBasis==='bank'?'on':''}">Bank value</button>
+      </div>
+    </div>
+    ${insights.length?`<div class="insightStack">${insights.join('')}</div>`:''}
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="tile"><div class="lbl">Net worth</div><div class="val amber">${money(k.netWorth)}</div>
+        <div class="sub">Everything owned minus everything owed · ${state.valuationBasis==='market'?'homes.co.nz basis':'bank valuation basis'}</div></div>
+      <div class="tile cyan"><div class="lbl">Investable assets</div><div class="val cyan">${money(k.investable)}</div>
+        <div class="sub">Cash + offset + Joint Kernel + Hatch — deployable money</div></div>
+      <div class="tile green"><div class="lbl">FIRE assets</div><div class="val" style="color:var(--green)">${money(k.fireAssets)}</div>
+        <div class="sub">${state.assumptions.includeKiwiSaverInFIRE?'Includes KiwiSaver (toggled on)':'Excludes KiwiSaver & baby fund'} · ${pct(k.fireAssets/state.assumptions.fireTarget)} of target</div></div>
+      <div class="tile"><div class="lbl">Savings rate</div><div class="val">${pct(cf.rate)}</div>
+        <div class="bar-outer"><div class="bar-inner" style="width:${Math.max(0,Math.min(100,cf.rate*100))}%"></div></div>
+        <div class="sub">From the Cash flow tab</div></div>
+    </div>
+    <div class="grid g4" style="margin-bottom:16px;">
+      <div class="tile plain"><div class="lbl">Latest change</div><div class="val sm ${change===null?'':(change>=0?'pos':'neg')}">${change===null?'—':(change>=0?'+':'')+money(change)}</div></div>
+      <div class="tile plain"><div class="lbl">Locked retirement (KiwiSaver)</div><div class="val sm">${money(k.locked)}</div></div>
+      <div class="tile plain"><div class="lbl">${babyLabel()}</div><div class="val sm">${money(k.babyFund)}</div><div class="sub">Ring-fenced — never counted toward FIRE</div></div>
+      <div class="tile plain"><div class="lbl">Property equity</div><div class="val sm ${k.propEquity<0?'neg':''}">${money(k.propEquity)}</div></div>
+    </div>
+    <div class="grid g2">
+      <div class="panel"><h3>Net worth over time</h3><div class="chartWrap"><canvas id="chartNW"></canvas></div></div>
+      <div class="panel"><h3>Where the wealth sits</h3><div class="chartWrap"><canvas id="chartAlloc"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <h3>Holdings breakdown</h3>
+      <table><thead><tr><th>Bucket</th><th>Class</th><th>Balance</th><th>Allocation</th></tr></thead>
+      <tbody>${holdingsRows(l)}</tbody></table>
+      <div class="sub" style="margin-top:10px;">Allocation is each holding's share of your combined positive holdings. Negative property equity is shown but excluded from the split.</div>
+    </div>`;
+  document.querySelectorAll('#valToggle button').forEach(b=>{
+    b.addEventListener('click', ()=>{ state.valuationBasis=b.dataset.v; persist(); render(); });
+  });
+  drawNetWorthChart('chartNW');
+  drawAllocChart('chartAlloc', l);
+}
+function topInsights(n){
+  const out = [];
+  const l = latest(); if(!l) return out;
+  const k = classify(l);
+  const cf = cashflowAnnual();
+  const prev = nBack(1);
+  if(prev){
+    const d = k.netWorth - classify(prev).netWorth;
+    out.push(`<div class="insight ${d>=0?'good':'watch'}">Net worth ${d>=0?'is up':'is down'} <b>${money(Math.abs(d))}</b> since your last update.</div>`);
+  }
+  if(cf.rate > 0.4) out.push(`<div class="insight good">A <b>${pct(cf.rate)}</b> savings rate is exceptional — at this pace, every year of work buys roughly ${(cf.rate/(1-cf.rate)).toFixed(1)} years of freedom.</div>`);
+  else if(cf.rate > 0) out.push(`<div class="insight">Your savings rate is <b>${pct(cf.rate)}</b>. Nudging it higher moves your FIRE date more than investment returns do.</div>`);
+  const f = fireNumbers();
+  if(f && f.coastReached) out.push(`<div class="insight good">You've passed <b>Coast FIRE</b> — even with zero further contributions, growth alone should reach your base target by 65.</div>`);
+  const issues = healthChecks().filter(h=>h.level==='warn');
+  if(issues.length) out.push(`<div class="insight watch"><b>${issues.length} data-health ${issues.length===1?'item needs':'items need'} attention</b> — see the Data health page.</div>`);
+  return out.slice(0, n);
+}
+function holdingsRows(l){
+  const rows = [
+    ["Cash savings","Investable · Emergency", l.cashSavings],
+    ["Cash buffer","Investable", l.cashBuffer],
+    ["Offset","Investable · Committed", l.offset],
+    ["Joint Kernel","Investable · FIRE", l.jointKernel],
+    ["Hatch","Investable · FIRE", l.hatch],
+    [personLabel("Duard")+" KiwiSaver","Locked retirement", l.duardKS],
+    [personLabel("Holly")+" KiwiSaver","Locked retirement", l.hollyKS],
+    ["Baby cash","Ring-fenced", l.babyCash],
+    ["Baby Kernel","Ring-fenced", l.babyKernel],
+    ["Holiday savings","Committed", l.holidaySavings],
+    ["Cars","Lifestyle asset", l.carsValue],
+    [`Property equity (${state.valuationBasis})`,"Property", propValue(l)-(l.mortgage||0)]
+  ];
+  const denom = rows.reduce((s,[,,v])=> s + Math.max(0, v||0), 0);
+  return rows.map(([name,cls,val])=>{
+    const v = val||0;
+    if(v < 0) return `<tr><td>${name}</td><td class="muted">${cls}</td><td class="neg">${money(v)}</td><td class="muted">—</td></tr>`;
+    const p = denom ? v/denom : 0;
+    return `<tr><td>${name}</td><td class="muted">${cls}</td><td>${money(v)}</td><td class="cyan">${pct(p)}<span class="scoreBar"><i style="width:${Math.min(100,p*100)}%"></i></span></td></tr>`;
+  }).join("");
+}
+function rowNonPropAssets(r){
+  return (r.cashSavings||0)+(r.cashBuffer||0)+(r.offset||0)+(r.jointKernel||0)+(r.babyCash||0)+
+    (r.babyKernel||0)+(r.hatch||0)+(r.duardKS||0)+(r.hollyKS||0)+(r.carsValue||0)+(r.holidaySavings||0);
+}
+function drawNetWorthChart(id){
+  const ctx = document.getElementById(id); if(!ctx) return;
+  const rows = sortedSnaps();
+  const labels = rows.map(r=>fmtDate(r.date));
+  const bank = rows.map(r=> (r.bankValue||0)-(r.mortgage||0) + rowNonPropAssets(r) - (r.otherDebts||0));
+  const market = rows.map(r=> (r.marketValue||0)-(r.mortgage||0) + rowNonPropAssets(r) - (r.otherDebts||0));
+  if(charts.nw) charts.nw.destroy();
+  charts.nw = new Chart(ctx, {type:'line', data:{labels, datasets:[
+      {label:'Net worth (market)', data:market, borderColor:'#C6A76D', backgroundColor:'rgba(198,167,109,.10)', fill:true, tension:.25, pointRadius:3},
+      {label:'Net worth (bank)', data:bank, borderColor:'#8FAEC9', borderDash:[5,3], fill:false, tension:.25, pointRadius:2}
+    ]}, options: chartOptions('$')});
+}
+function drawAllocChart(id,l){
+  const ctx = document.getElementById(id); if(!ctx) return;
+  const k = classify(l);
+  const groups = [
+    ['Investable', k.investable], ['KiwiSaver (locked)', k.locked],
+    ['Baby fund', k.babyFund], ['Property equity', Math.max(0,k.propEquity)],
+    ['Cars & other', (l.carsValue||0)+(l.holidaySavings||0)]
+  ];
+  if(charts.alloc) charts.alloc.destroy();
+  charts.alloc = new Chart(ctx, {type:'doughnut', data:{
+    labels: groups.map(g=>g[0]),
+    datasets:[{data: groups.map(g=>Math.round(g[1])), borderColor:'#15181E', borderWidth:2,
+      backgroundColor:['#C6A76D','#8FAEC9','#A08FC1','#5FBE8F','#8B929E']}]
+  }, options:{responsive:true, maintainAspectRatio:false, cutout:'62%',
+    plugins:{legend:{position:'bottom', labels:{color:'#EAEAE6', font:{family:'Inter', size:10}, boxWidth:10, padding:10}},
+      tooltip:{enabled:!PRIVACY}}}});
+}
+
+/* --------------------------- MONTHLY REVIEW ----------------------------- */
+function renderReview(c){
+  const l = latest();
+  c.innerHTML = `<h1 class="pagetitle">Monthly review</h1>
+    <p class="pagesub">Your latest snapshot against the previous one, and the same time last year when you have the history.</p>`;
+  if(!l){ c.innerHTML += `<div class="banner info">Add a snapshot first.</div>`; return; }
+  const prev = nBack(1), yr = yoy();
+  if(!prev){
+    c.innerHTML += `<div class="banner info">This is your first snapshot — log a second one and this page becomes a proper month-on-month review.</div>`;
+    return;
+  }
+  const kNow = classify(l), kPrev = classify(prev), kYr = yr ? classify(yr) : null;
+  const invNow = (l.jointKernel||0)+(l.hatch||0)+(l.duardKS||0)+(l.hollyKS||0)+(l.babyKernel||0);
+  const invPrev = (prev.jointKernel||0)+(prev.hatch||0)+(prev.duardKS||0)+(prev.hollyKS||0)+(prev.babyKernel||0);
+  const cashNow = (l.cashSavings||0)+(l.cashBuffer||0)+(l.offset||0);
+  const cashPrev = (prev.cashSavings||0)+(prev.cashBuffer||0)+(prev.offset||0);
+  const deltas = [
+    ['Net worth', kNow.netWorth, kPrev.netWorth, kYr?kYr.netWorth:null],
+    ['Investable assets', kNow.investable, kPrev.investable, kYr?kYr.investable:null],
+    ['FIRE assets', kNow.fireAssets, kPrev.fireAssets, kYr?kYr.fireAssets:null],
+    ['Cash & offset', cashNow, cashPrev, kYr?(yr.cashSavings||0)+(yr.cashBuffer||0)+(yr.offset||0):null],
+    ['Investment balances', invNow, invPrev, yr?(yr.jointKernel||0)+(yr.hatch||0)+(yr.duardKS||0)+(yr.hollyKS||0)+(yr.babyKernel||0):null],
+    ['Mortgage', l.mortgage||0, prev.mortgage||0, yr?(yr.mortgage||0):null],
+    ['Property value ('+state.valuationBasis+')', propValue(l), propValue(prev), yr?propValue(yr):null]
+  ];
+  const movers = deltas.slice(0,5).map(d=>({name:d[0], d:d[1]-d[2]})).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d));
+  const wins = [], watch = [];
+  deltas.forEach(([name,now,pv])=>{
+    const d = now-pv;
+    const better = name==='Mortgage' ? d<0 : d>0;
+    if(Math.abs(d)<1) return;
+    (better?wins:watch).push(`<div class="hRow"><span class="hDot ${better?'ok':'warn'}"></span><div>${name} ${d>=0?'+':''}${money(d)}</div></div>`);
+  });
+  healthChecks().filter(h=>h.level==='warn').forEach(h=>{
+    watch.push(`<div class="hRow"><span class="hDot warn"></span><div>${h.msg}<span class="fix">${h.fix}</span></div></div>`);
+  });
+  const mortgageDown = (prev.mortgage||0)-(l.mortgage||0);
+  const summary = `Between ${fmtDate(prev.date)} and ${fmtDate(l.date)}, net worth ${kNow.netWorth-kPrev.netWorth>=0?'rose':'fell'} ${money(Math.abs(kNow.netWorth-kPrev.netWorth))}. `
+    + `The biggest mover was ${movers[0].name.toLowerCase()} (${movers[0].d>=0?'+':''}${money(movers[0].d)}). `
+    + (mortgageDown>0?`You paid the mortgage down by ${money(mortgageDown)}. `:``)
+    + (kYr?`Compared with roughly a year ago, net worth is ${kNow.netWorth-kYr.netWorth>=0?'up':'down'} ${money(Math.abs(kNow.netWorth-kYr.netWorth))} (${pct((kNow.netWorth-kYr.netWorth)/Math.abs(kYr.netWorth||1))}).`:`Once you have a year of history, this summary adds a year-on-year read.`);
+  c.innerHTML += `
+    <div class="insight" style="margin-bottom:16px;">${summary}</div>
+    <div class="grid g4" style="margin-bottom:16px;">
+      <div class="tile"><div class="lbl">Net worth change</div><div class="val sm ${kNow.netWorth-kPrev.netWorth>=0?'pos':'neg'}">${(kNow.netWorth-kPrev.netWorth>=0?'+':'')+money(kNow.netWorth-kPrev.netWorth)}</div></div>
+      <div class="tile cyan"><div class="lbl">FIRE asset change</div><div class="val sm ${kNow.fireAssets-kPrev.fireAssets>=0?'pos':'neg'}">${(kNow.fireAssets-kPrev.fireAssets>=0?'+':'')+money(kNow.fireAssets-kPrev.fireAssets)}</div></div>
+      <div class="tile green"><div class="lbl">Mortgage reduction</div><div class="val sm ${mortgageDown>=0?'pos':'neg'}">${mortgageDown>=0?'-':'+'}${money(Math.abs(mortgageDown))}</div></div>
+      <div class="tile plain"><div class="lbl">Biggest mover</div><div class="val sm">${movers[0].name}</div><div class="sub">${movers[0].d>=0?'+':''}${money(movers[0].d)}</div></div>
+    </div>
+    <div class="panel" style="overflow-x:auto;">
+      <h3>The numbers</h3>
+      <table><thead><tr><th>Metric</th><th>Now</th><th>Previous</th><th>Change</th><th class="hide-sm">~1 year ago</th><th class="hide-sm">vs year</th></tr></thead><tbody>
+      ${deltas.map(([name,now,pv,y])=>{
+        const d=now-pv, dy = y===null?null:now-y;
+        const good = name==='Mortgage' ? d<=0 : d>=0;
+        const goodY = y===null?null:(name==='Mortgage' ? dy<=0 : dy>=0);
+        return `<tr><td>${name}</td><td>${money(now)}</td><td>${money(pv)}</td>
+          <td class="${good?'pos':'neg'}">${d>=0?'+':''}${money(d)}</td>
+          <td class="hide-sm">${y===null?'<span class="muted">n/a</span>':money(y)}</td>
+          <td class="hide-sm ${dy===null?'':(goodY?'pos':'neg')}">${dy===null?'<span class="muted">n/a</span>':(dy>=0?'+':'')+money(dy)}</td></tr>`;
+      }).join('')}
+      </tbody></table>
+    </div>
+    <div class="grid g2">
+      <div class="panel"><h3>Wins</h3>${wins.join('')||'<div class="sub">Nothing moved forward this period.</div>'}</div>
+      <div class="panel"><h3>Watch items</h3>${watch.join('')||'<div class="sub">Nothing needs attention. Clean sheet.</div>'}</div>
+    </div>`;
+}
+
+/* ---------------------------- TRENDS & BENCHMARK ------------------------ */
+function renderTrends(c){
+  const l = latest();
+  c.innerHTML = `<h1 class="pagetitle">Trends &amp; comparisons</h1>
+    <p class="pagesub">Latest vs prior period, three periods ago, and ~1 year ago.</p>`;
+  if(!l){ c.innerHTML += `<div class="banner info">Add at least one snapshot to see trends.</div>`; return; }
+  const k = classify(l);
+  const p1 = nBack(1), p3 = nBack(3), py = yoy();
+  const rows = [
+    ["Net worth", s=>classify(s).netWorth],
+    ["Investable assets", s=>classify(s).investable],
+    ["FIRE assets", s=>classify(s).fireAssets],
+    ["Cash & offset", s=>(s.cashSavings||0)+(s.cashBuffer||0)+(s.offset||0)],
+    ["Property equity", s=>propValue(s)-(s.mortgage||0)]
+  ];
+  const cell = v => v===null ? `<td class="muted">n/a</td>` : `<td>${money(v)}</td>`;
+  const chg = v => v===null ? `<td class="muted">n/a</td>` : `<td class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${money(v)}</td>`;
+  c.innerHTML += `<div class="panel" style="overflow-x:auto;"><table><thead><tr>
+    <th>Metric</th><th>Latest</th><th>Prior</th><th>Change</th><th class="hide-sm">3 back</th><th class="hide-sm">Change</th><th>~1 yr ago</th><th>Change</th>
+    </tr></thead><tbody>
+    ${rows.map(([name,fn])=>{
+      const cur=fn(l), v1=p1?fn(p1):null, v3=p3?fn(p3):null, vy=py?fn(py):null;
+      return `<tr><td>${name}</td><td>${money(cur)}</td>${cell(v1)}${chg(v1===null?null:cur-v1)}
+        <td class="hide-sm">${v3===null?'<span class="muted">n/a</span>':money(v3)}</td>
+        <td class="hide-sm ${v3===null?'':(cur-v3>=0?'pos':'neg')}">${v3===null?'<span class="muted">n/a</span>':(cur-v3>=0?'+':'')+money(cur-v3)}</td>
+        ${cell(vy)}${chg(vy===null?null:cur-vy)}</tr>`;
+    }).join("")}
+    </tbody></table></div>
+    <p class="pagesub">"~1 yr ago" approximates 12 months back from your latest entry date. The Monthly review page turns these numbers into plain English.</p>`;
+}
+function renderBenchmark(c){
+  const l = latest();
+  c.innerHTML = `<h1 class="pagetitle">Benchmark</h1><p class="pagesub">How you're tracking against other New Zealanders your age. Stats NZ (2021 HES individual net worth by age, uplifted ~33% per the 2024 survey movement) and the Retirement Commission / MJW KiwiSaver study (Dec 2024).</p>`;
+  if(!l){ c.innerHTML += `<div class="banner info">Add a snapshot first.</div>`; return; }
+  const k = classify(l);
+  const aD = duardAge(), aH = hollyAge();
+  const peer2021 = 34000;
+  const peerUp = Math.round(peer2021*1.33/500)*500;
+  const peerCouple = peerUp*2;
+  const nzMedian = 529000;
+  const ks30s = 27500, ksAll = 41286;
+  c.innerHTML += `
+    <div class="banner">${personLabel("Duard")} is ${aD}, ${personLabel("Holly")} is ${aH}. Benchmarks use the closest published NZ age band (25–34).</div>
+    <div class="grid g3" style="margin-bottom:16px;">
+      <div class="tile"><div class="lbl">Your net worth (market)</div><div class="val amber">${money(k.netWorth)}</div></div>
+      <div class="tile cyan"><div class="lbl">Est. NZ peer couple (25–34)</div><div class="val cyan">~${money(peerCouple)}</div>
+        <div class="sub">2 × individual median, uplifted from 2021 to today's dollars</div></div>
+      <div class="tile green"><div class="lbl">You're tracking at</div><div class="val" style="color:var(--green)">${PRIVACY?'•••':(k.netWorth/peerCouple*100).toFixed(0)+'%'}</div>
+        <div class="sub">of the estimated peer-couple benchmark</div></div>
+    </div>
+    <div class="panel"><h3>Net worth vs benchmarks</h3><div class="chartWrap"><canvas id="chartBench"></canvas></div></div>
+    <div class="grid g2">
+      <div class="panel"><h3>KiwiSaver vs NZ averages</h3>
+        <table><thead><tr><th></th><th>Balance</th><th>NZ 30s avg</th><th>NZ all-ages avg</th></tr></thead><tbody>
+          <tr><td>Holly</td><td class="cyan">${money(l.hollyKS)}</td><td>${money(ks30s)}</td><td>${money(ksAll)}</td></tr>
+          <tr><td>Duard</td><td class="cyan">${money(l.duardKS)}</td><td>${money(ks30s)}</td><td>${money(ksAll)}</td></tr>
+        </tbody></table>
+        <div class="sub" style="margin-top:8px;">Source: Retirement Commission / Melville Jessup Weaver, balances at 31 Dec 2024.</div></div>
+      <div class="panel"><h3>Wider context</h3>
+        <table><tbody>
+          <tr><td>NZ household median net worth (2024)</td><td>${money(nzMedian)}</td></tr>
+          <tr><td>NZ individual median, 25–34 (2021)</td><td>${money(peer2021)}</td></tr>
+          <tr><td>Same, est. in today's dollars</td><td>${money(peerUp)}</td></tr>
+        </tbody></table>
+        <div class="sub" style="margin-top:8px;">Approximations for context — direction of travel over time matters more than the exact percentage.</div></div>
+    </div>`;
+  const ctx = document.getElementById('chartBench');
+  if(charts.bench) charts.bench.destroy();
+  charts.bench = new Chart(ctx, {type:'bar', data:{
+    labels:['You (combined)','Est. peer couple (25–34)','NZ household median'],
+    datasets:[{data:[k.netWorth, peerCouple, nzMedian], backgroundColor:['#C6A76D','#8FAEC9','#8B929E'], borderRadius:4}]
+  }, options:{...chartOptions('$'), plugins:{legend:{display:false}, tooltip:{enabled:!PRIVACY}}}});
+}
+
+/* --------------------------------- FIRE --------------------------------- */
+function renderFire(c){
+  const f = fireNumbers();
+  c.innerHTML = `<h1 class="pagetitle">FIRE</h1>
+    <p class="pagesub">Financial independence maths, done honestly: only FIRE assets count — cash, offset, Joint Kernel and Hatch. KiwiSaver is locked until 65 and shown separately; the baby fund never counts.</p>`;
+  if(!f){ c.innerHTML += `<div class="banner info">Add a snapshot first.</div>`; return; }
+  const a = state.assumptions;
+  const fireYear = f.yrsSet!==null ? new Date().getFullYear()+f.yrsSet : null;
+  c.innerHTML += `
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="tile green"><div class="lbl">FIRE assets</div><div class="val" style="color:var(--green)">${money(f.k.fireAssets)}</div>
+        <div class="bar-outer"><div class="bar-inner" style="width:${Math.min(100,f.k.fireAssets/f.targets.set*100)}%; background:var(--green);"></div></div>
+        <div class="sub">${pct(f.k.fireAssets/f.targets.set)} of your ${money(f.targets.set)} target</div></div>
+      <div class="tile"><div class="lbl">Locked retirement (KiwiSaver)</div><div class="val sm">${money(f.k.locked)}</div>
+        <div class="sub">Available from 65 — a second engine arriving later${a.includeKiwiSaverInFIRE?' · currently INCLUDED in FIRE by your toggle':''}</div></div>
+      <div class="tile cyan"><div class="lbl">Passive income today</div><div class="val cyan sm">${money(f.passive)}/yr</div>
+        <div class="sub">FIRE assets × ${pct(f.swr)} safe withdrawal rate</div></div>
+      <div class="tile"><div class="lbl">Years to your target</div><div class="val sm">${f.yrsSet===null?'>45':f.yrsSet}</div>
+        <div class="sub">${fireYear?`Projected ${fireYear} — ${personLabel('Duard')} ${f.aD + f.yrsSet}, ${personLabel('Holly')} ${f.aH + f.yrsSet}`:'Beyond the projection horizon at current pace'}</div></div>
+    </div>
+    <div class="panel" style="overflow-x:auto;">
+      <h3>Lean · Base · Fat <span>— targets derived from your actual spending (${money(f.spendBase)}/yr from Cash flow)</span></h3>
+      <table><thead><tr><th>Flavour</th><th>Annual spend</th><th>Target (÷ ${pct(f.swr)})</th><th>Progress</th><th>Years away</th></tr></thead><tbody>
+        ${[['Lean FIRE', f.spendBase*0.8, f.targets.lean, f.yrsLean],
+           ['Base FIRE', f.spendBase, f.targets.base, f.yrsBase],
+           ['Fat FIRE', f.spendBase*1.3, f.targets.fat, f.yrsFat],
+           ['Your set target', null, f.targets.set, f.yrsSet]].map(([n,sp,t,y])=>
+        `<tr><td>${n}</td><td>${sp===null?'<span class="muted">—</span>':money(sp)}</td><td>${money(t)}</td>
+          <td class="cyan">${pct(f.k.fireAssets/t)}</td>
+          <td>${y===null?'<span class="muted">&gt;45</span>':y+' yrs · '+(new Date().getFullYear()+y)}</td></tr>`).join('')}
+      </tbody></table>
+    </div>
+    <div class="grid g2">
+      <div class="panel"><h3>Coast FIRE</h3>
+        <div class="val md ${f.coastReached?'pos':''}" style="font-weight:600;">${money(f.coastNumber)}</div>
+        <div class="sub" style="margin-top:6px;">The amount which, invested today with <b style="color:var(--white)">zero further contributions</b>, grows to your base target by 65. You hold ${money(f.k.fireAssets)} — ${f.coastReached?'<b style="color:var(--green)">Coast FIRE reached.</b> Everything you save from here brings the date forward.':'you\u2019re '+pct(f.k.fireAssets/f.coastNumber)+' of the way to coasting.'}</div>
+      </div>
+      <div class="panel"><h3>Configuration</h3>
+        <label>Count KiwiSaver in FIRE assets?</label>
+        <select id="f_ks"><option value="0" ${!a.includeKiwiSaverInFIRE?'selected':''}>No — honest early-retirement view (recommended)</option><option value="1" ${a.includeKiwiSaverInFIRE?'selected':''}>Yes — total retirement view</option></select>
+        <div class="row">
+          <div><label>Your FIRE target ($)</label><input type="number" id="f_target" value="${a.fireTarget}"></div>
+          <div><label>Safe withdrawal rate (%)</label><input type="number" step="0.1" id="f_swr" value="${(a.safeWithdrawal*100).toFixed(1)}"></div>
+        </div>
+        <button class="btn" onclick="saveFireConfig()">Save FIRE settings</button>
+      </div>
+    </div>
+    <div class="panel"><h3>FIRE assets — projected path</h3><div class="chartWrap" style="height:320px;"><canvas id="chartFire"></canvas></div></div>`;
+  const p = projectWealth({});
+  const labels = p.fire.map((_,n)=> new Date().getFullYear()+n).slice(0,41);
+  const ctx = document.getElementById('chartFire');
+  if(charts.fire) charts.fire.destroy();
+  charts.fire = new Chart(ctx, {type:'line', data:{labels, datasets:[
+    {label:'FIRE assets', data:p.fire.slice(0,41), borderColor:'#5FBE8F', backgroundColor:'rgba(95,190,143,.08)', fill:true, pointRadius:0, tension:.15, borderWidth:2.5},
+    {label:'+ KiwiSaver (locked)', data:p.fire.map((v,i)=>v+p.locked[i]).slice(0,41), borderColor:'#8FAEC9', borderDash:[4,3], pointRadius:0, tension:.15},
+    {label:'Your target', data:labels.map(()=>f.targets.set), borderColor:'#C6A76D', borderDash:[6,4], pointRadius:0},
+    {label:'Base FIRE', data:labels.map(()=>f.targets.base), borderColor:'#D97B7E', borderDash:[2,3], pointRadius:0}
+  ]}, options: chartOptions('$')});
+}
+function saveFireConfig(){
+  const a = state.assumptions;
+  a.includeKiwiSaverInFIRE = $('#f_ks').value==='1';
+  a.fireTarget = clampNum($('#f_target').value, 100000, 100000000, a.fireTarget);
+  a.safeWithdrawal = clampNum($('#f_swr').value, 1, 10, a.safeWithdrawal*100)/100;
+  persist(); render();
+}
+
+/* ------------------------- PROJECTIONS & SCENARIOS ---------------------- */
+function renderProj(c){
+  const l = latest();
+  c.innerHTML = `<h1 class="pagetitle">Projections</h1>
+    <p class="pagesub">Forward model from your latest snapshot: FIRE assets compound with your contribution, KiwiSaver compounds with both employers, the mortgage amortises, property grows. Not a guarantee.</p>`;
+  if(!l){ c.innerHTML += `<div class="banner info">Add a snapshot first.</div>`; return; }
+  const a = state.assumptions;
+  const p = projectWealth({years:Math.max(10, a.horizon)});
+  const yrs = Math.max(10, a.horizon);
+  const fireIdx = yearsUntil(p.fire, a.fireTarget);
+  c.innerHTML += `
+    <div class="grid g4" style="margin-bottom:16px;">
+      <div class="tile green"><div class="lbl">Years to FIRE target</div><div class="val" style="color:var(--green)">${fireIdx===null?'>'+yrs:fireIdx}</div></div>
+      <div class="tile"><div class="lbl">Projected FIRE year</div><div class="val md">${fireIdx===null?'—':new Date().getFullYear()+fireIdx}</div></div>
+      <div class="tile"><div class="lbl">Net worth in 10 years</div><div class="val md">${money(p.nw[10])}</div></div>
+      <div class="tile"><div class="lbl">Net worth at horizon (${yrs}y)</div><div class="val md">${money(p.nw[yrs])}</div></div>
+    </div>
+    <div class="panel"><h3>Projected wealth by component</h3><div class="chartWrap" style="height:340px;"><canvas id="chartProj"></canvas></div></div>
+    <div class="banner">Model: FIRE assets grow at ${pct(a.investReturn)} + ${money(a.annualContribution)}/yr · KiwiSaver adds ${money(ksAnnualTotal())}/yr · property grows ${pct(a.propertyGrowth)} with the mortgage amortising at your ${money(state.income.mortgageFortnightly)}/fn repayment · baby fund grows separately and is never mixed in. Tune on Assumptions.</div>`;
+  const labels = p.nw.map((_,n)=>new Date().getFullYear()+n).slice(0, yrs+1);
+  const ctx = document.getElementById('chartProj');
+  if(charts.proj) charts.proj.destroy();
+  charts.proj = new Chart(ctx, {type:'line', data:{labels, datasets:[
+    {label:'Total net worth', data:p.nw.slice(0,yrs+1), borderColor:'#C6A76D', backgroundColor:'rgba(198,167,109,.08)', fill:true, pointRadius:0, tension:.15, borderWidth:2.5},
+    {label:'FIRE assets', data:p.fire.slice(0,yrs+1), borderColor:'#5FBE8F', pointRadius:0, tension:.15},
+    {label:'KiwiSaver', data:p.locked.slice(0,yrs+1), borderColor:'#8FAEC9', pointRadius:0, tension:.15},
+    {label:'Property equity', data:p.prop.slice(0,yrs+1), borderColor:'#A08FC1', pointRadius:0, tension:.15},
+    {label:'FIRE target', data:labels.map(()=>a.fireTarget), borderColor:'#D97B7E', borderDash:[6,4], pointRadius:0}
+  ]}, options: chartOptions('$')});
+}
+let _scen = null;
+function renderScenarios(c){
+  const l = latest();
+  c.innerHTML = `<h1 class="pagetitle">Scenarios</h1><p class="pagesub">Net worth at future ages under three return assumptions, using both your real birthdays. Tap the chart or a milestone row to inspect a year. Refreshes automatically from your latest snapshot.</p>`;
+  if(!l){ c.innerHTML += `<div class="banner info">Add a snapshot first.</div>`; return; }
+  const a = state.assumptions;
+  const aD = duardAge(), aH = hollyAge();
+  const cons = projectWealth({rAdj:-0.02}).nw, base = projectWealth({}).nw, opt = projectWealth({rAdj:0.02}).nw;
+  const thisYear = new Date().getFullYear();
+  _scen = {aD, aH, cons, base, opt, thisYear, fireTarget:a.fireTarget};
+  const milestones = [35,40,45,50,55,60,65,70];
+  c.innerHTML += `
+    <div class="panel">
+      <h3>Net worth by age <span>— shown against both your ages</span></h3>
+      <div class="chartWrap" style="height:340px;"><canvas id="chartScenarios"></canvas></div>
+      <div class="row" style="margin-top:8px;">
+        <div style="color:var(--red);font-size:11px;">■ Conservative (${pct(Math.max(0,a.investReturn-0.02))})</div>
+        <div style="color:var(--amber);font-size:11px;">■ Base (${pct(a.investReturn)})</div>
+        <div style="color:var(--green);font-size:11px;">■ Optimistic (${pct(a.investReturn+0.02)})</div>
+      </div>
+    </div>
+    <div class="panel" id="scenarioDetail"><h3>Inspect a year</h3><div class="sub">Tap any point on the chart, or a row below.</div></div>
+    <div class="panel" style="overflow-x:auto;">
+      <h3>Milestone ages</h3>
+      <table><thead><tr><th>${personLabel("Duard")}</th><th>${personLabel("Holly")}</th><th>Year</th><th>Conservative</th><th>Base</th><th>Optimistic</th><th>FIRE target?</th></tr></thead><tbody>
+      ${milestones.map(age=>{
+        const n = age-aD; if(n<0||n>=base.length) return '';
+        const hit = base[n]>=a.fireTarget?`<span class="pos">✓ base case</span>`:(opt[n]>=a.fireTarget?`<span class="cyan">optimistic only</span>`:`<span class="muted">not yet</span>`);
+        return `<tr style="cursor:pointer" onclick="showScenarioDetail(${n})"><td>${age}</td><td>${aH+n}</td><td>${thisYear+n}</td><td>${money(cons[n])}</td><td><b>${money(base[n])}</b></td><td>${money(opt[n])}</td><td>${hit}</td></tr>`;
+      }).join('')}
+      </tbody></table>
+    </div>`;
+  const labels = base.map((_,n)=>aD+n).filter(age=>age<=75);
+  const trim = arr => arr.slice(0, labels.length);
+  const ctx = document.getElementById('chartScenarios');
+  if(charts.scenarios) charts.scenarios.destroy();
+  charts.scenarios = new Chart(ctx, {type:'line', data:{labels, datasets:[
+    {label:'Conservative', data:trim(cons), borderColor:'#D97B7E', pointRadius:0, pointHitRadius:14, tension:.15},
+    {label:'Base', data:trim(base), borderColor:'#C6A76D', pointRadius:0, pointHitRadius:14, tension:.15, borderWidth:2.5},
+    {label:'Optimistic', data:trim(opt), borderColor:'#5FBE8F', pointRadius:0, pointHitRadius:14, tension:.15},
+    {label:'FIRE target', data:labels.map(()=>a.fireTarget), borderColor:'#8FAEC9', borderDash:[6,4], pointRadius:0}
+  ]}, options:{...chartOptions('$'), interaction:{mode:'index', intersect:false},
+    onClick:(evt, els)=>{ if(els && els.length){ showScenarioDetail(els[0].index); } }}});
+}
+function showScenarioDetail(n){
+  if(!_scen) return;
+  const {aD, aH, cons, base, opt, thisYear, fireTarget} = _scen;
+  if(n<0 || n>=base.length) return;
+  const el = document.getElementById('scenarioDetail'); if(!el) return;
+  const fire = base[n]>=fireTarget ? `<span class="pos">✓ FIRE target reached in the base case</span>`
+    : (opt[n]>=fireTarget ? `<span class="cyan">Reached in the optimistic case only</span>`
+    : `<span class="muted">${money(fireTarget-base[n])} short of the target (base case)</span>`);
+  el.innerHTML = `
+    <h3>${personLabel("Duard")} ${aD+n} · ${personLabel("Holly")} ${aH+n} · ${thisYear+n}</h3>
+    <div class="grid g3">
+      <div class="tile red"><div class="lbl">Conservative</div><div class="val md" style="color:var(--red)">${money(cons[n])}</div></div>
+      <div class="tile"><div class="lbl">Base</div><div class="val md amber">${money(base[n])}</div></div>
+      <div class="tile green"><div class="lbl">Optimistic</div><div class="val md" style="color:var(--green)">${money(opt[n])}</div></div>
+    </div>
+    <div class="sub" style="margin-top:12px;">${fire} · ${n} year${n===1?'':'s'} from your latest snapshot.</div>`;
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* -------------------------- SNAPSHOT LOG & ENTRY ------------------------ */
+function getFieldDefs(){ return [
+  ["date","Date","date"],["period","Period","select",["Month","Quarter","Ad hoc"]],
+  ["cashSavings","Cash savings","number"],["cashBuffer","Cash buffer","number"],
+  ["offset","Offset","number"],["jointKernel","Joint Kernel","number"],
+  ["babyCash","Baby cash","number"],["babyKernel","Baby Kernel","number"],
+  ["hatch","Hatch","number"],["duardKS", personLabel("Duard")+" KiwiSaver","number"],
+  ["hollyKS", personLabel("Holly")+" KiwiSaver","number"],["bankValue","House — bank valuation","number"],
+  ["marketValue","House — market value (homes.co.nz)","number"],["mortgage","Mortgage balance","number"],
+  ["carsValue","Cars","number"],["holidaySavings","Holiday savings","number"],
+  ["otherDebts","Other debts","number"],["notes","Notes","text"]
+]; }
+let editIndex = null;
+function renderLog(c){
+  const rows = sortedSnaps().slice().reverse();
+  c.innerHTML = `<h1 class="pagetitle">Snapshot log</h1>
+    <p class="pagesub">The heartbeat of the whole system. Log a full snapshot monthly — everything else recalculates from here.</p>
+    <button class="btn" onclick="openModal()">+ New entry</button>
+    <div class="panel" style="margin-top:16px;overflow-x:auto;">
+      <h3>All entries <span>— newest first</span></h3>
+      <table><thead><tr><th>Date</th><th>Period</th><th>Net worth</th><th>Change</th><th>FIRE %</th>
+        <th class="hide-sm">Bank val.</th><th class="hide-sm">Market val.</th><th class="hide-sm">Mortgage</th><th></th></tr></thead>
+      <tbody>${logRows(rows)}</tbody></table>
+    </div>`;
+}
+function logRows(rows){
+  const chron = sortedSnaps();
+  return rows.map(r=>{
+    const k = classify(r);
+    const i = chron.findIndex(x=>x===r);
+    const prevK = i>0 ? classify(chron[i-1]) : null;
+    const change = prevK ? k.netWorth - prevK.netWorth : null;
+    const origIdx = state.snapshots.indexOf(r);
+    return `<tr>
+      <td>${fmtDate(r.date)}</td><td class="muted">${esc(r.period||'-')}</td>
+      <td class="amber">${money(k.netWorth)}</td>
+      <td class="${change===null?'muted':(change>=0?'pos':'neg')}">${change===null?'—':(change>=0?'+':'')+money(change)}</td>
+      <td class="cyan">${pct(k.fireAssets/state.assumptions.fireTarget)}</td>
+      <td class="hide-sm">${money(r.bankValue)}</td><td class="hide-sm">${money(r.marketValue)}</td><td class="hide-sm">${money(r.mortgage)}</td>
+      <td><button class="btn small secondary" onclick="openModal(${origIdx})">Edit</button>
+          <button class="iconBtn" aria-label="Delete entry" onclick="deleteEntry(${origIdx})">✕</button></td></tr>`;
+  }).join('');
+}
+function openModal(idx){
+  editIndex = (typeof idx==='number') ? idx : null;
+  const r = editIndex!==null ? state.snapshots[editIndex] : Object.assign({}, latest()||{}, {date:new Date().toISOString().slice(0,10), notes:""});
+  $('#entryModalTitle').textContent = editIndex!==null ? 'Edit entry' : 'New snapshot entry';
+  $('#entryForm').innerHTML = `<div class="row">` + getFieldDefs().map(([key,label,type,opts])=>{
+    if(type==='select') return `<div><label>${label}</label><select id="f_${key}">${opts.map(o=>`<option ${r[key]===o?'selected':''}>${o}</option>`).join('')}</select></div>`;
+    const v = r[key]!==undefined && r[key]!==null ? (type==='text'?esc(r[key]):r[key]) : (type==='number'?0:'');
+    return `<div><label>${label}</label><input type="${type}" ${type==='number'?'step="0.01" inputmode="decimal"':''} id="f_${key}" value="${v}"></div>`;
+  }).join('') + `</div>`;
+  $('#entryModal').classList.add('show');
+}
+function closeModal(){ $('#entryModal').classList.remove('show'); }
+function saveEntry(){
+  const r = {};
+  let valid = true;
+  getFieldDefs().forEach(([key,label,type])=>{
+    const el = $('#f_'+key); if(!el) return;
+    if(type==='number'){
+      const n = clampNum(el.value===''?0:el.value, -100000000, 100000000, null);
+      if(n===null){ el.classList.add('invalid'); valid=false; } else { el.classList.remove('invalid'); r[key]=n; }
+    } else r[key] = el.value;
+  });
+  if(!valid) return;
+  if(!r.date){ $('#f_date').classList.add('invalid'); return; }
+  if(editIndex!==null) state.snapshots[editIndex] = r; else state.snapshots.push(r);
+  persist(); closeModal(); render();
+}
+function deleteEntry(idx){
+  if(!confirm("Delete this snapshot entry?")) return;
+  state.snapshots.splice(idx,1); persist(); render();
+}
+
+/* ------------------------------- CASH FLOW ------------------------------ */
+let cfFilter = 'All';
+function captureCf(){
+  document.querySelectorAll('#cfBody tr[data-id]').forEach(tr=>{
+    const it = state.cashflow.items.find(x=>x.id===tr.dataset.id); if(!it) return;
+    it.name = tr.querySelector('.cf-name').value;
+    it.owner = tr.querySelector('.cf-owner').value;
+    it.type = tr.querySelector('.cf-type').value;
+    it.cat = tr.querySelector('.cf-cat').value;
+    it.amount = clampNum(tr.querySelector('.cf-amt').value, 0, 10000000, 0);
+    it.freq = tr.querySelector('.cf-freq').value;
+  });
+}
+function saveCashflow(){ captureCf(); persist(); render(); }
+function addCashflowItem(){
+  captureCf();
+  state.cashflow.items.push({id:'cf'+Date.now(), name:'New item', owner: cfFilter==='All'?'Joint':cfFilter, type:'out', cat:'General', amount:0, freq:'fortnightly'});
+  persist(); render();
+}
+function delCashflowItem(id){
+  captureCf();
+  state.cashflow.items = state.cashflow.items.filter(i=>i.id!==id);
+  persist(); render();
+}
+function setCfFilter(f){ captureCf(); persist(); cfFilter=f; render(); }
+const CF_CATS = ['Income','Housing','Insurance','Utilities','Transport','Food','Personal','Savings','General'];
+function renderCashflow(c){
+  const all = state.cashflow.items;
+  const items = cfFilter==='All' ? all : all.filter(i=>i.owner===cfFilter);
+  const inAnn  = items.filter(i=>i.type==='in').reduce((s,i)=>s+cfAnnual(i),0);
+  const outAnn = items.filter(i=>i.type==='out').reduce((s,i)=>s+cfAnnual(i),0);
+  const netAnn = inAnn-outAnn, rate = inAnn ? netAnn/inAnn : 0;
+  const irregular = items.filter(i=>i.type==='out' && (i.freq==='quarterly'||i.freq==='yearly'));
+  const provision = irregular.reduce((s,i)=>s+cfAnnual(i),0)/12;
+  c.innerHTML = `<h1 class="pagetitle">Cash flow</h1>
+  <p class="pagesub">Every income and expense, normalised across frequencies so a yearly bill and a weekly habit compare fairly. Filter by person to see individual flows.</p>
+  <div class="filterRow">${['All','Holly','Duard','Joint'].map(f=>
+    `<button class="btn small ${cfFilter===f?'':'secondary'}" onclick="setCfFilter('${f}')">${f==='All'||f==='Joint'?f:personLabel(f)}</button>`).join('')}</div>
+  <div class="grid g4" style="margin-bottom:14px;">
+    <div class="tile green"><div class="lbl">Money in / month</div><div class="val" style="color:var(--green)">${money(inAnn/12)}</div><div class="sub">${money(inAnn/26)} /fn · ${money(inAnn)} /yr</div></div>
+    <div class="tile red"><div class="lbl">Money out / month</div><div class="val" style="color:var(--red)">${money(outAnn/12)}</div><div class="sub">${money(outAnn/26)} /fn · ${money(outAnn)} /yr</div></div>
+    <div class="tile"><div class="lbl">Surplus / month</div><div class="val ${netAnn>=0?'pos':'neg'}">${netAnn>=0?'+':''}${money(netAnn/12)}</div><div class="sub">${money(netAnn)} per year available to save or invest</div></div>
+    <div class="tile cyan"><div class="lbl">Savings rate</div><div class="val cyan">${pct(rate)}</div>
+      <div class="bar-outer"><div class="bar-inner" style="width:${Math.max(0,Math.min(100,rate*100))}%;background:var(--cyan);"></div></div></div>
+  </div>
+  ${irregular.length?`<div class="insight info">Irregular bills (${irregular.map(i=>esc(i.name)).join(', ')}) total <b>${money(provision)}</b> a month — worth auto-transferring that into the bills account each month so rates day never hurts.</div><div style="height:14px"></div>`:''}
+  <div class="grid g2">
+    <div class="panel"><h3>In vs out by person <span>— monthly, whole household</span></h3><div class="chartWrap"><canvas id="cfOwners"></canvas></div></div>
+    <div class="panel"><h3>Spending by category <span>— ${cfFilter==='All'?'household':esc(cfFilter)}</span></h3><div class="chartWrap"><canvas id="cfSplit"></canvas></div></div>
+  </div>
+  <div class="panel" style="overflow-x:auto;">
+    <h3>Line items <span>— ${cfFilter==='All'?'everything':esc(cfFilter)+' only'} · edit anything, then Save</span></h3>
+    <table class="cfTable"><thead><tr><th>Item</th><th>Who</th><th>Category</th><th>In/Out</th><th>Amount</th><th>Every</th><th class="hide-sm">Weekly</th><th>Monthly</th><th class="hide-sm">Yearly</th><th></th></tr></thead>
+    <tbody id="cfBody">
+    ${items.map(it=>{
+      const ann = cfAnnual(it);
+      return `<tr data-id="${esc(it.id)}">
+      <td><input class="cf-name" type="text" value="${esc(it.name)}"></td>
+      <td><select class="cf-owner">${['Holly','Duard','Joint'].map(o=>`<option value="${o}" ${it.owner===o?'selected':''}>${o==='Joint'?'Joint':personLabel(o)}</option>`).join('')}</select></td>
+      <td><select class="cf-cat">${CF_CATS.map(o=>`<option ${it.cat===o?'selected':''}>${o}</option>`).join('')}</select></td>
+      <td><select class="cf-type"><option value="in" ${it.type==='in'?'selected':''}>In</option><option value="out" ${it.type==='out'?'selected':''}>Out</option></select></td>
+      <td><input class="cf-amt" type="number" step="0.01" inputmode="decimal" value="${it.amount}"></td>
+      <td><select class="cf-freq">${Object.keys(FREQ).map(f=>`<option value="${f}" ${it.freq===f?'selected':''}>${FREQ_LABEL[f]}</option>`).join('')}</select></td>
+      <td class="hide-sm muted">${money(ann/52)}</td>
+      <td class="${it.type==='in'?'pos':''}">${money(ann/12)}</td>
+      <td class="hide-sm muted">${money(ann)}</td>
+      <td><button class="iconBtn" aria-label="Remove ${esc(it.name||'item')}" onclick="delCashflowItem('${esc(it.id)}')">✕</button></td></tr>`;
+    }).join('')}
+    </tbody></table>
+    <button class="btn secondary" onclick="addCashflowItem()" style="margin-right:8px;">+ Add line</button>
+    <button class="btn" onclick="saveCashflow()">Save changes</button>
+    <button class="btn secondary" onclick="applyCashflowToProjections()" style="margin-left:8px;">Send surplus to Projections</button>
+  </div>
+  <div class="banner">The savings rate here feeds the Dashboard and the FIRE page's lean/base/fat targets. Keep it honest — include everything, even the small stuff.</div>`;
+  const owners = ['Holly','Duard','Joint'];
+  const inBy  = owners.map(o=> all.filter(i=>i.owner===o&&i.type==='in').reduce((s,i)=>s+cfAnnual(i),0)/12);
+  const outBy = owners.map(o=> all.filter(i=>i.owner===o&&i.type==='out').reduce((s,i)=>s+cfAnnual(i),0)/12);
+  const ctxO = document.getElementById('cfOwners');
+  if(charts.cfOwners) charts.cfOwners.destroy();
+  charts.cfOwners = new Chart(ctxO, {type:'bar', data:{labels:owners, datasets:[
+    {label:'In', data:inBy, backgroundColor:'#5FBE8F', borderRadius:4},
+    {label:'Out', data:outBy, backgroundColor:'#D97B7E', borderRadius:4}
+  ]}, options: chartOptions('$')});
+  const byCat = {};
+  items.filter(i=>i.type==='out').forEach(i=>{ byCat[i.cat||'General'] = (byCat[i.cat||'General']||0) + cfAnnual(i)/12; });
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const ctxS = document.getElementById('cfSplit');
+  if(charts.cfSplit) charts.cfSplit.destroy();
+  charts.cfSplit = new Chart(ctxS, {type:'doughnut', data:{
+    labels: cats.map(x=>x[0]),
+    datasets:[{data: cats.map(x=>Math.round(x[1])), borderColor:'#15181E', borderWidth:2,
+      backgroundColor:['#C6A76D','#8FAEC9','#5FBE8F','#D97B7E','#A08FC1','#6FB8B3','#C98FB0','#A7B57A','#8B929E'].slice(0,cats.length)}]
+  }, options:{responsive:true, maintainAspectRatio:false, cutout:'62%',
+    plugins:{legend:{position:'bottom', labels:{color:'#EAEAE6', font:{family:'Inter', size:10}, boxWidth:10, padding:10}},
+      tooltip:{enabled:!PRIVACY}}}});
+}
+
+/* -------------------------------- BUDGET -------------------------------- */
+function renderBudget(c){
+  const ri = state.ratesInsurance, b = state.budget;
+  const riTotal = ri.rates + ri.landlordInsurance + ri.contentsInsurance*12 + ri.lifeInsurance;
+  c.innerHTML = `<h1 class="pagetitle">Budget</h1>
+  <p class="pagesub">Rates &amp; insurance plus your fortnightly budget across the three income scenarios. Everything is editable — change a number, press Save.</p>
+  <div class="panel">
+    <h3>Rates &amp; insurance <span>— annual totals</span></h3>
+    <div class="row">
+      <div><label>Rates (annual, paid quarterly)</label><input type="number" step="0.01" id="ri_rates" value="${ri.rates}"></div>
+      <div><label>Landlord insurance (annual)</label><input type="number" step="0.01" id="ri_landlord" value="${ri.landlordInsurance}"></div>
+      <div><label>Contents insurance ($/month)</label><input type="number" step="0.01" id="ri_contents" value="${ri.contentsInsurance}"></div>
+      <div><label>Life insurance (annual)</label><input type="number" step="0.01" id="ri_life" value="${ri.lifeInsurance}"></div>
+    </div>
+    <div class="sub" style="margin-top:10px;">Annual total: <b style="color:var(--white)">${money(riTotal)}</b> · ${esc(ri.lifeNote)} · These figures feed the Property page and Decision engine.</div>
+    <button class="btn" onclick="saveRatesIns()">Save rates &amp; insurance</button>
+  </div>
+  <div class="banner info"><b>Scenario key:</b> the three columns are the household's income scenarios you're comparing — rename them in the table below to whatever fits (e.g. "${personLabel('Holly')} current", "${personLabel('Duard')} current", "Combined").</div>
+  <div class="panel" style="overflow-x:auto;">
+    <h3>Fortnightly household budget <span>— tap any number to edit</span></h3>
+    <table><thead><tr><th>Item</th><th>Account</th>${b.scenarios.map(s=>`<th>${esc(s)}</th>`).join('')}</tr></thead><tbody>
+    ${b.rows.map((r,ri2)=>`<tr><td>${esc(r.item)}</td><td class="muted">${esc(r.account||'-')}</td>${r.vals.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" inputmode="decimal" data-r="${ri2}" data-c="${ci}" value="${v===null?'':v}" placeholder="—"></td>`).join('')}</tr>`).join('')}
+    <tr style="border-top:1px solid var(--grid);"><td><b>Computed total after expenses</b></td><td></td>${b.scenarios.map((s,ci)=>{
+      const income = (b.rows.find(r=>r.item==='Income')||{vals:[]}).vals[ci]||0;
+      const expenses = b.rows.filter(r=>r.item!=='Income').reduce((s2,r)=>s2+(r.vals[ci]||0),0);
+      return `<td>${money(income-expenses)}</td>`;
+    }).join('')}</tr>
+    <tr><td class="muted">Your stated total after expenses</td><td></td>${b.statedTotalAfterExpenses.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" data-ste="${ci}" value="${v===null?'':v}"></td>`).join('')}</tr>
+    <tr><td>Life Savings</td><td class="muted">Life Savings</td>${b.lifeSavings.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" data-ls="${ci}" value="${v===null?'':v}"></td>`).join('')}</tr>
+    <tr><td class="muted">Your stated total after expenses &amp; savings</td><td></td>${b.statedTotalAfterSavings.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" data-sts="${ci}" value="${v===null?'':v}"></td>`).join('')}</tr>
+    </tbody></table>
+    <button class="btn" onclick="saveBudget()">Save budget</button>
+    <div class="sub" style="margin-top:10px;">Changes apply when you press Save. For the per-person money-in / money-out view with charts, see Cash flow.</div>
+  </div>`;
+}
+function saveRatesIns(){
+  const ri = state.ratesInsurance;
+  ri.rates = clampNum($('#ri_rates').value, 0, 1000000, ri.rates);
+  ri.landlordInsurance = clampNum($('#ri_landlord').value, 0, 1000000, ri.landlordInsurance);
+  ri.contentsInsurance = clampNum($('#ri_contents').value, 0, 100000, ri.contentsInsurance);
+  ri.lifeInsurance = clampNum($('#ri_life').value, 0, 1000000, ri.lifeInsurance);
+  persist(); render();
+}
+function saveBudget(){
+  const b = state.budget;
+  const grab = (sel, apply) => document.querySelectorAll(sel).forEach(inp=>{
+    const v = inp.value==='' ? null : clampNum(inp.value, -1000000, 1000000, 0);
+    apply(inp, v);
+  });
+  grab('input.cellIn[data-r]', (inp,v)=>{ b.rows[+inp.dataset.r].vals[+inp.dataset.c]=v; });
+  grab('input.cellIn[data-ste]', (inp,v)=>{ b.statedTotalAfterExpenses[+inp.dataset.ste]=v; });
+  grab('input.cellIn[data-ls]', (inp,v)=>{ b.lifeSavings[+inp.dataset.ls]=v; });
+  grab('input.cellIn[data-sts]', (inp,v)=>{ b.statedTotalAfterSavings[+inp.dataset.sts]=v; });
+  persist(); render();
+}
+
+/* --------------------------- INCOME & KIWISAVER ------------------------- */
+function renderIncome(c){
+  const inc = state.income, k = state.kiwisaver;
+  const ksH = inc.pretaxH*k.rateH*(k.employerMatch?2:1);
+  const ksD = inc.pretaxD*k.rateD*(k.employerMatch?2:1);
+  const shortfall = (inc.rentExpectedFortnightly-inc.rentReceivedFortnightly);
+  c.innerHTML = `<h1 class="pagetitle">Income &amp; KiwiSaver</h1>
+  <p class="pagesub">Salaries, mortgage split, rent, and what KiwiSaver quietly adds each year.</p>
+  <div class="panel"><h3>Income &amp; mortgage</h3>
+    <div class="row">
+      <div><label>${personLabel("Holly")} pre-tax salary</label><input type="number" id="i_pretaxH" value="${inc.pretaxH}"></div>
+      <div><label>${personLabel("Duard")} pre-tax salary</label><input type="number" id="i_pretaxD" value="${inc.pretaxD}"></div>
+      <div><label>${personLabel("Holly")} post-tax / fortnight</label><input type="number" step="0.01" id="i_postH" value="${inc.posttaxFortH}"></div>
+      <div><label>${personLabel("Duard")} post-tax / fortnight</label><input type="number" step="0.01" id="i_postD" value="${inc.posttaxFortD}"></div>
+    </div>
+    <div class="row">
+      <div><label>Mortgage / fortnight</label><input type="number" step="0.01" id="i_mort" value="${inc.mortgageFortnightly}"></div>
+      <div><label>Rent expected / fortnight</label><input type="number" step="0.01" id="i_rentE" value="${inc.rentExpectedFortnightly}"></div>
+      <div><label>Rent received / fortnight</label><input type="number" step="0.01" id="i_rentR" value="${inc.rentReceivedFortnightly}"></div>
+    </div>
+    <button class="btn" onclick="saveIncomeInputs()">Save income</button>
+    <div class="sub" style="margin-top:10px;">Rent shortfall vs expected: <b class="${shortfall>0?'neg':'pos'}">${money(shortfall*26)}/yr</b>. The mortgage repayment and rent received feed the Property page and Decision engine.</div>
+  </div>
+  <div class="panel"><h3>KiwiSaver engine</h3>
+    <div class="row">
+      <div><label>${personLabel("Holly")} contribution rate (%)</label><input type="number" step="0.1" id="k_rateH" value="${(k.rateH*100).toFixed(1)}"></div>
+      <div><label>${personLabel("Duard")} contribution rate (%)</label><input type="number" step="0.1" id="k_rateD" value="${(k.rateD*100).toFixed(1)}"></div>
+      <div><label>Employer match?</label><select id="k_match"><option value="1" ${k.employerMatch?'selected':''}>Yes — matched</option><option value="0" ${!k.employerMatch?'selected':''}>No</option></select></div>
+    </div>
+    <button class="btn" onclick="saveKiwisaver()">Save KiwiSaver</button>
+    <div class="grid g3" style="margin-top:16px;">
+      <div class="tile"><div class="lbl">${personLabel("Holly")} + employer / yr</div><div class="val sm">${money(ksH)}</div></div>
+      <div class="tile"><div class="lbl">${personLabel("Duard")} + employer / yr</div><div class="val sm">${money(ksD)}</div></div>
+      <div class="tile cyan"><div class="lbl">Combined / yr</div><div class="val sm cyan">${money(ksH+ksD)}</div><div class="sub">Flows automatically into every projection as locked retirement money</div></div>
+    </div>
+  </div>`;
+}
+function saveIncomeInputs(){
+  const inc = state.income;
+  inc.pretaxH = clampNum($('#i_pretaxH').value,0,10000000,inc.pretaxH);
+  inc.pretaxD = clampNum($('#i_pretaxD').value,0,10000000,inc.pretaxD);
+  inc.posttaxFortH = clampNum($('#i_postH').value,0,100000,inc.posttaxFortH);
+  inc.posttaxFortD = clampNum($('#i_postD').value,0,100000,inc.posttaxFortD);
+  inc.mortgageFortnightly = clampNum($('#i_mort').value,0,100000,inc.mortgageFortnightly);
+  inc.rentExpectedFortnightly = clampNum($('#i_rentE').value,0,100000,inc.rentExpectedFortnightly);
+  inc.rentReceivedFortnightly = clampNum($('#i_rentR').value,0,100000,inc.rentReceivedFortnightly);
+  persist(); render();
+}
+function saveKiwisaver(){
+  const k = state.kiwisaver;
+  k.rateH = clampNum($('#k_rateH').value,0,100,k.rateH*100)/100;
+  k.rateD = clampNum($('#k_rateD').value,0,100,k.rateD*100)/100;
+  k.employerMatch = $('#k_match').value==='1';
+  persist(); render();
+}
+
+/* ------------------------------- PROPERTY ------------------------------- */
+function renderProperty(c){
+  const l = latest();
+  c.innerHTML = `<h1 class="pagetitle">Property</h1>
+    <p class="pagesub">Your ${cityHome()} property: what it's worth on both bases, what it earns, what it costs, and what selling would actually release.</p>`;
+  if(!l){ c.innerHTML += `<div class="banner info">Add a snapshot first.</div>`; return; }
+  const a = state.assumptions, ri = state.ratesInsurance, inc = state.income;
+  const mkt = l.marketValue||0, bank = l.bankValue||0, mort = l.mortgage||0;
+  const rentA = inc.rentReceivedFortnightly*26;
+  const mortPayA = inc.mortgageFortnightly*26;
+  const holding = ri.rates + ri.landlordInsurance + a.maintenanceAnnual;
+  const am = amortizePath(mort, a.mortgageRate, mortPayA, 10);
+  const rentCash = rentA - holding - mortPayA;
+  const grossYield = mkt ? rentA/mkt : 0;
+  const offsetSaved = (l.offset||0) * a.mortgageRate;
+  const proceeds = mkt - a.sellingCosts - mort;
+  const eq5 = mkt*Math.pow(1+a.propertyGrowth,5) - am.path[5];
+  c.innerHTML += `
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="tile"><div class="lbl">Bank valuation</div><div class="val sm">${money(bank)}</div><div class="sub">Equity on this basis: ${money(bank-mort)}</div></div>
+      <div class="tile cyan"><div class="lbl">Market value (homes.co.nz)</div><div class="val sm cyan">${money(mkt)}</div><div class="sub">Equity on this basis: <span class="${mkt-mort<0?'neg':''}">${money(mkt-mort)}</span></div></div>
+      <div class="tile red"><div class="lbl">Mortgage</div><div class="val sm" style="color:var(--red)">${money(mort)}</div><div class="sub">Principal paid this year ≈ ${money(am.principalY1)}</div></div>
+      <div class="tile"><div class="lbl">Net sale proceeds today</div><div class="val sm ${proceeds<0?'neg':'pos'}">${money(proceeds)}</div><div class="sub">Market value − ${money(a.sellingCosts)} costs − mortgage</div></div>
+    </div>
+    <div class="panel"><h3>Keep values current</h3>
+      <div class="sub" style="margin:0 0 2px 0;">Edits your most recent snapshot (${fmtDate(l.date)}) so everything flows through instantly. Next month, just type fresh values into your new log entry.</div>
+      <div class="row">
+        <div><label>Market value (homes.co.nz)</label><input type="number" id="pv_market" value="${mkt}"></div>
+        <div><label>Bank valuation</label><input type="number" id="pv_bank" value="${bank}"></div>
+        <div><label>Mortgage balance</label><input type="number" id="pv_mortgage" value="${mort}"></div>
+      </div>
+      <button class="btn" onclick="savePropertyCurrent()">Update values</button>
+    </div>
+    <div class="grid g2">
+      <div class="panel"><h3>As a rental — this year</h3>
+        <table><tbody>
+          <tr><td>Rent received</td><td class="pos">${money(rentA)}/yr</td></tr>
+          <tr><td>Gross yield on market value</td><td class="cyan">${pct(grossYield)}</td></tr>
+          <tr><td>Rates + landlord ins + maintenance</td><td class="neg">-${money(holding)}</td></tr>
+          <tr><td>Mortgage repayments</td><td class="neg">-${money(mortPayA)}</td></tr>
+          <tr><td><b>Cash flow (incl. principal)</b></td><td class="${rentCash>=0?'pos':'neg'}"><b>${money(rentCash)}/yr</b></td></tr>
+          <tr><td>… of which builds equity (principal)</td><td class="pos">+${money(am.principalY1)}</td></tr>
+          <tr><td>Interest cost (year 1 est.)</td><td class="muted">${money(am.interestY1)}</td></tr>
+          <tr><td>Offset interest saved</td><td class="pos">+${money(offsetSaved)}/yr</td></tr>
+        </tbody></table></div>
+      <div class="panel"><h3>Looking ahead</h3>
+        <table><tbody>
+          <tr><td>Projected market value in 5 yrs (${pct(a.propertyGrowth)} growth)</td><td>${money(mkt*Math.pow(1+a.propertyGrowth,5))}</td></tr>
+          <tr><td>Projected mortgage in 5 yrs</td><td>${money(am.path[5])}</td></tr>
+          <tr><td><b>Projected equity in 5 yrs</b></td><td class="pos"><b>${money(eq5)}</b></td></tr>
+          <tr><td>Projected equity in 10 yrs</td><td class="pos">${money(mkt*Math.pow(1+a.propertyGrowth,10)-am.path[10])}</td></tr>
+        </tbody></table>
+        <div class="sub" style="margin-top:8px;">Whether keeping or selling wins depends on the alternative — that's exactly what the Decision engine compares.</div></div>
+    </div>
+    <div class="panel"><h3>Sale inputs</h3>
+      <div class="row">
+        <div><label>Realistic sale value</label><input type="number" id="p_sale" value="${a.realisticSaleValue}"></div>
+        <div><label>Selling costs (agent, legal…)</label><input type="number" id="p_costs" value="${a.sellingCosts}"></div>
+      </div>
+      <button class="btn" onclick="savePropertyInputs()">Save sale inputs</button>
+    </div>`;
+}
+function savePropertyCurrent(){
+  const l = latest(); if(!l) return;
+  l.marketValue = clampNum($('#pv_market').value, 0, 100000000, l.marketValue);
+  l.bankValue = clampNum($('#pv_bank').value, 0, 100000000, l.bankValue);
+  l.mortgage = clampNum($('#pv_mortgage').value, 0, 100000000, l.mortgage);
+  persist(); render();
+}
+function savePropertyInputs(){
+  const a = state.assumptions;
+  a.realisticSaleValue = clampNum($('#p_sale').value, 0, 100000000, a.realisticSaleValue);
+  a.sellingCosts = clampNum($('#p_costs').value, 0, 10000000, a.sellingCosts);
+  persist(); render();
+}
+
+/* ---------------------------- DECISION ENGINE --------------------------- */
+function renderDecision(c){
+  const l = latest();
+  c.innerHTML = `<h1 class="pagetitle">Decision engine</h1>
+    <p class="pagesub">The real question isn't "can we save a deposit" — it's rentvest, swap, stack, or sell up and invest. Four futures, same assumptions, compared honestly.</p>`;
+  if(!l){ c.innerHTML += `<div class="banner info">Add a snapshot first.</div>`; return; }
+  const P = propertyScenarios();
+  const a = state.assumptions;
+  const bestKey = P.ranked.find(x=>P.scen[x].feasible) || P.ranked[0];
+  const best = P.scen[bestKey];
+  const blocked = P.ranked.filter(x=>!P.scen[x].feasible && P.scen[x].nw10 > best.nw10);
+  const scoreCell = (v, invert) => {
+    const w = Math.max(0,Math.min(100,(invert?(10-v):v)*10));
+    return `${v}/10<span class="scoreBar"><i style="width:${w}%;background:${invert?(v>=7?'var(--red)':v>=5?'var(--amber)':'var(--green)'):'var(--amber)'}"></i></span>`;
+  };
+  c.innerHTML += `
+    <div class="insight" style="margin-bottom:16px;"><b>${best.name}</b> is the strongest <i>feasible</i> path right now (10-year net worth ${money(best.nw10)}).${blocked.length?` ${blocked.map(x=>P.scen[x].name).join(' and ')} project${blocked.length===1?'s':''} higher on paper but ${blocked.length===1?'is':'are'} blocked by a deposit gap today.`:''} ${P.proceeds<0?`Selling ${cityHome()} today would <b style=\"color:var(--red)\">cost</b> roughly ${money(Math.abs(P.proceeds))} after clearing the mortgage and fees — market value sits below what's owed plus costs, which weighs heavily against selling right now.`:`Selling ${cityHome()} today would release about ${money(P.proceeds)} after costs.`} Numbers move as you update snapshots and assumptions.</div>
+    <div class="grid g3" style="margin-bottom:16px;">
+      <div class="tile"><div class="lbl">${citySecond()} deposit required (${pct(a.hbDepositPct)} of ${money(a.hbPrice)})</div><div class="val sm">${money(P.requiredDep)}</div></div>
+      <div class="tile cyan"><div class="lbl">Deposit pool today (cash + offset)</div><div class="val sm cyan">${money(P.depositPool)}</div></div>
+      <div class="tile ${P.proceeds<0?'red':'green'}"><div class="lbl">Net sale proceeds if sold</div><div class="val sm ${P.proceeds<0?'neg':'pos'}">${money(P.proceeds)}</div></div>
+    </div>
+    <div class="panel" style="overflow-x:auto;">
+      <h3>The four futures <span>— 5 &amp; 10 year projections</span></h3>
+      <table><thead><tr><th>Scenario</th><th>Net worth 5y</th><th>Net worth 10y</th><th>Housing cost /mo</th><th>Deposit gap</th><th>Total debt</th><th class="hide-sm">Flexibility</th><th class="hide-sm">Lifestyle</th><th class="hide-sm">Risk</th></tr></thead><tbody>
+      ${['A','B','C','D'].map(key=>{
+        const s = P.scen[key];
+        const isBest = key===bestKey;
+        return `<tr${isBest?' style="background:var(--amber-soft);"':''}>
+          <td><b>${key} · ${s.name}</b>${isBest?' <span class="amber">★</span>':''}${s.feasible?'':' <span class="neg">(deposit gap)</span>'}<br><span class="muted" style="font-size:10.5px;white-space:normal;">${s.desc}</span></td>
+          <td>${money(s.nw5)}</td><td><b>${money(s.nw10)}</b></td>
+          <td class="${s.cashMo>2500?'neg':''}">${money(s.cashMo)}</td>
+          <td class="${s.gap>0?'neg':'pos'}">${s.gap>0?money(s.gap):'—'}</td>
+          <td>${money(s.debt)}</td>
+          <td class="hide-sm">${scoreCell(s.flex)}</td><td class="hide-sm">${scoreCell(s.life)}</td><td class="hide-sm">${scoreCell(Math.min(10,s.risk), true)}</td></tr>`;
+      }).join('')}
+      </tbody></table>
+      <div class="sub" style="margin-top:10px;">"Housing cost /mo" is total out-of-pocket housing spend (mortgages, rates, insurance, maintenance, rent paid) net of rent received. Scores are simple 1–10 heuristics for talking it through, not gospel. Investment leg assumes each scenario's cashflow difference vs Rentvest gets invested at ${pct(a.investReturn)}.</div>
+    </div>
+    <div class="panel"><h3>Engine assumptions <span>— edit and everything recomputes</span></h3>
+      <div class="row">
+        <div><label>${citySecond()} target price</label><input type="number" id="d_price" value="${a.hbPrice}"></div>
+        <div><label>Deposit required (%)</label><input type="number" step="1" id="d_dep" value="${(a.hbDepositPct*100).toFixed(0)}"></div>
+        <div><label>Rent paid in ${citySecond()} ($/fortnight)</label><input type="number" step="1" id="d_rent" value="${a.hbRentPaidFortnightly}"></div>
+        <div><label>${citySecond()} property growth (%)</label><input type="number" step="0.1" id="d_hbg" value="${(a.hbPropertyGrowth*100).toFixed(1)}"></div>
+      </div>
+      <div class="row">
+        <div><label>${citySecond()} rates ($/yr)</label><input type="number" id="d_hbrates" value="${a.hbRatesAnnual}"></div>
+        <div><label>${citySecond()} insurance ($/yr)</label><input type="number" id="d_hbins" value="${a.hbInsuranceAnnual}"></div>
+        <div><label>Maintenance per property ($/yr)</label><input type="number" id="d_maint" value="${a.maintenanceAnnual}"></div>
+        <div><label>Mortgage years remaining (${cityHome()})</label><input type="number" id="d_yrs" value="${a.mortgageYearsRemaining}"></div>
+      </div>
+      <button class="btn" onclick="saveDecisionInputs()">Save &amp; recompute</button>
+      <div class="sub" style="margin-top:10px;">Interest rate (${pct(a.mortgageRate)}), investment return (${pct(a.investReturn)}), ${cityHome()} growth (${pct(a.propertyGrowth)}) and selling costs (${money(a.sellingCosts)}) live on the Assumptions page. ${cityHome()} rent received (${money(state.income.rentReceivedFortnightly)}/fn) lives on Income.</div>
+    </div>`;
+}
+function saveDecisionInputs(){
+  const a = state.assumptions;
+  a.hbPrice = clampNum($('#d_price').value, 0, 100000000, a.hbPrice);
+  a.hbDepositPct = clampNum($('#d_dep').value, 1, 100, a.hbDepositPct*100)/100;
+  a.hbRentPaidFortnightly = clampNum($('#d_rent').value, 0, 100000, a.hbRentPaidFortnightly);
+  a.hbPropertyGrowth = clampNum($('#d_hbg').value, -20, 50, a.hbPropertyGrowth*100)/100;
+  a.hbRatesAnnual = clampNum($('#d_hbrates').value, 0, 1000000, a.hbRatesAnnual);
+  a.hbInsuranceAnnual = clampNum($('#d_hbins').value, 0, 1000000, a.hbInsuranceAnnual);
+  a.maintenanceAnnual = clampNum($('#d_maint').value, 0, 1000000, a.maintenanceAnnual);
+  a.mortgageYearsRemaining = clampNum($('#d_yrs').value, 1, 40, a.mortgageYearsRemaining);
+  persist(); render();
+}
+
+/* -------------------------------- GOALS --------------------------------- */
+function requiredContribution(current, target, dateStr, annualRate){
+  if(!dateStr) return null;
+  const months = (new Date(dateStr) - new Date())/(1000*60*60*24*30.44);
+  if(target <= current) return {done:true};
+  if(months < 1) return {overdue:true, gap:target-current};
+  const r = (annualRate||0)/12;
+  let m;
+  if(r>0){ const g = Math.pow(1+r, months); m = (target - current*g)*r/(g-1); }
+  else m = (target-current)/months;
+  return {monthly:Math.max(0,m), fortnightly:Math.max(0,m*12/26), months:Math.round(months)};
+}
+function paceProjection(accessor, target){
+  const s = sortedSnaps();
+  if(s.length < 2) return null;
+  const first = s[0], last = s[s.length-1];
+  const months = Math.max(0.5, (new Date(last.date)-new Date(first.date))/(1000*60*60*24*30.44));
+  const pace = (accessor(last)-accessor(first))/months;
+  if(pace <= 0) return {stalled:true};
+  const monthsLeft = (target-accessor(last))/pace;
+  if(monthsLeft <= 0) return {done:true};
+  const d = new Date(); d.setMonth(d.getMonth()+Math.ceil(monthsLeft));
+  return {date:d, pace};
+}
+function renderGoals(c){
+  const l = latest();
+  c.innerHTML = `<h1 class="pagetitle">Goals</h1>
+    <p class="pagesub">Each goal shows where you are, when your own pace lands you, and what it takes per month to hit your chosen date instead.</p>`;
+  if(!l){ c.innerHTML += `<div class="banner info">Add a snapshot first.</div>`; return; }
+  const a = state.assumptions, k = classify(l), gd = a.goalDates||{};
+  const goals = [
+    {key:'offset', name:'Offset target', cur:l.offset||0, target:a.offsetTarget, date:gd.offset, rate:0, acc:s=>s.offset||0,
+     note:'Every dollar here saves '+pct(a.mortgageRate)+' interest, tax-free and risk-free.'},
+    {key:'emergency', name:'Emergency fund', cur:l.cashSavings||0, target:a.emergencyFundTarget, date:gd.emergency, rate:a.cashReturn, acc:s=>s.cashSavings||0,
+     note:'Cash savings vs your safety-net target.'},
+    {key:'invest', name:'Joint retirement investments', cur:(l.jointKernel||0)+(l.hatch||0), target:a.investTarget, date:gd.invest, rate:a.investReturn, acc:s=>(s.jointKernel||0)+(s.hatch||0),
+     note:'Kernel + Hatch — the FIRE engine outside KiwiSaver.'},
+    {key:'babyCash', name:'Baby cash buffer', cur:l.babyCash||0, target:a.babyCashTarget, date:gd.babyCash, rate:0, acc:s=>s.babyCash||0,
+     note:'Near-term baby costs, kept in cash.'},
+    {key:'babyFund', name:babyLabel(), cur:k.babyFund, target:a.babyFundTarget, date:gd.babyFund, rate:a.investReturn, acc:s=>(s.babyCash||0)+(s.babyKernel||0),
+     note:'The long-horizon gift — see the Baby fund page for the full picture.'},
+    {key:'deposit', name:'Lifestyle property deposit', cur:k.committed.deposit, target:a.lifestyleDepositTarget, date:gd.deposit, rate:a.cashReturn, acc:s=>(s.cashSavings||0)+(s.offset||0),
+     note:'Cash + offset pool. The Decision engine tests what this unlocks.'},
+    {key:'fire', name:'FIRE target', cur:k.fireAssets, target:a.fireTarget, date:gd.fire, rate:a.investReturn, acc:s=>classify(s).fireAssets,
+     note:'FIRE assets only — KiwiSaver and baby fund excluded.'}
+  ];
+  c.innerHTML += goals.map(g=>{
+    const p = Math.min(1, g.cur/g.target);
+    const req = requiredContribution(g.cur, g.target, g.date, g.rate);
+    const pace = paceProjection(g.acc, g.target);
+    let paceTxt = 'Log more snapshots for a pace-based date';
+    if(pace){ paceTxt = pace.done ? '<span class="pos">Already there</span>'
+      : pace.stalled ? '<span class="muted">No forward pace yet</span>'
+      : 'At your current pace: <b style="color:var(--white)">'+fmtDate(pace.date)+'</b>'; }
+    let reqTxt = 'Set a target date in Goal settings';
+    if(req){ reqTxt = req.done ? '<span class="pos">✓ Complete</span>'
+      : req.overdue ? '<span class="neg">Target date passed — '+money(req.gap)+' to go</span>'
+      : 'Needs <b style="color:var(--white)">'+money(req.monthly)+'/mo</b> ('+money(req.fortnightly)+'/fn) to hit '+fmtDate(g.date); }
+    return `<div class="panel">
+      <div class="flexBetween"><h3 style="border:none;padding:0;margin:0;">${g.name}</h3>
+        <span class="cyan" style="font-size:13px;font-weight:600;">${pct(p)}</span></div>
+      <div class="bar-outer" style="margin-top:12px;"><div class="bar-inner" style="width:${p*100}%;${p>=1?'background:var(--green);':''}"></div></div>
+      <div class="row" style="margin-top:12px;">
+        <div><div class="sub">Current</div><div style="font-weight:600;">${money(g.cur)}</div></div>
+        <div><div class="sub">Target</div><div style="font-weight:600;">${money(g.target)}</div></div>
+        <div><div class="sub">Projected</div><div style="font-size:12.5px;">${paceTxt}</div></div>
+        <div><div class="sub">To hit your date</div><div style="font-size:12.5px;">${reqTxt}</div></div>
+      </div>
+      <div class="sub" style="margin-top:10px;">${g.note}</div>
+    </div>`;
+  }).join('');
+  const p = projectWealth({});
+  const mile = [250000, 500000, 750000, 1000000, a.fireTarget];
+  c.innerHTML += `<div class="panel"><h3>Net worth milestones <span>— base-case projection</span></h3>
+    <table><thead><tr><th>Milestone</th><th>Projected year</th><th>${personLabel("Duard")}</th><th>${personLabel("Holly")}</th></tr></thead><tbody>
+    ${mile.map(m=>{
+      const n = yearsUntil(p.nw, m);
+      return `<tr><td>${money(m)}${m===a.fireTarget?' <span class="amber">(FIRE)</span>':''}</td>
+        <td>${n===null?'<span class="muted">beyond horizon</span>':'<b>'+(new Date().getFullYear()+n)+'</b>'}</td>
+        <td>${n===null?'—':duardAge()+n}</td><td>${n===null?'—':hollyAge()+n}</td></tr>`;
+    }).join('')}
+    </tbody></table></div>
+    <div class="panel"><h3>Goal settings</h3>
+    <div class="row">
+      <div><label>Offset target</label><input type="number" id="g_offset" value="${a.offsetTarget}"></div>
+      <div><label>Offset date</label><input type="date" id="gd_offset" value="${gd.offset||''}"></div>
+      <div><label>Emergency target</label><input type="number" id="g_emergency" value="${a.emergencyFundTarget}"></div>
+      <div><label>Emergency date</label><input type="date" id="gd_emergency" value="${gd.emergency||''}"></div>
+    </div>
+    <div class="row">
+      <div><label>Investments target</label><input type="number" id="g_invest" value="${a.investTarget}"></div>
+      <div><label>Investments date</label><input type="date" id="gd_invest" value="${gd.invest||''}"></div>
+      <div><label>Baby cash target</label><input type="number" id="g_babyCash" value="${a.babyCashTarget}"></div>
+      <div><label>Baby cash date</label><input type="date" id="gd_babyCash" value="${gd.babyCash||''}"></div>
+    </div>
+    <div class="row">
+      <div><label>Baby fund target</label><input type="number" id="g_babyFund" value="${a.babyFundTarget}"></div>
+      <div><label>Baby fund date</label><input type="date" id="gd_babyFund" value="${gd.babyFund||''}"></div>
+      <div><label>Deposit target</label><input type="number" id="g_deposit" value="${a.lifestyleDepositTarget}"></div>
+      <div><label>Deposit date</label><input type="date" id="gd_deposit" value="${gd.deposit||''}"></div>
+    </div>
+    <div class="row">
+      <div><label>FIRE target</label><input type="number" id="g_fire" value="${a.fireTarget}"></div>
+      <div><label>FIRE date</label><input type="date" id="gd_fire" value="${gd.fire||''}"></div>
+    </div>
+    <button class="btn" onclick="saveGoalSettings()">Save goal settings</button></div>`;
+}
+function saveGoalSettings(){
+  const a = state.assumptions;
+  a.offsetTarget = clampNum($('#g_offset').value, 0, 100000000, a.offsetTarget);
+  a.emergencyFundTarget = clampNum($('#g_emergency').value, 0, 100000000, a.emergencyFundTarget);
+  a.investTarget = clampNum($('#g_invest').value, 0, 100000000, a.investTarget);
+  a.babyCashTarget = clampNum($('#g_babyCash').value, 0, 100000000, a.babyCashTarget);
+  a.babyFundTarget = clampNum($('#g_babyFund').value, 0, 100000000, a.babyFundTarget);
+  a.lifestyleDepositTarget = clampNum($('#g_deposit').value, 0, 100000000, a.lifestyleDepositTarget);
+  a.fireTarget = clampNum($('#g_fire').value, 0, 100000000, a.fireTarget);
+  a.goalDates = a.goalDates||{};
+  ['offset','emergency','invest','babyCash','babyFund','deposit','fire'].forEach(k=>{
+    a.goalDates[k] = $('#gd_'+k).value || a.goalDates[k] || '';
+  });
+  persist(); render();
+}
+
+/* ----------------------------- BABY FERREIRA ---------------------------- */
+function renderBaby(c){
+  const l = latest();
+  c.innerHTML = `<h1 class="pagetitle">${babyLabel()}</h1>
+    <p class="pagesub">Ring-fenced and growing quietly. This fund is never counted toward FIRE — it belongs to someone else's future.</p>`;
+  if(!l){ c.innerHTML += `<div class="banner info">Add a snapshot first.</div>`; return; }
+  const a = state.assumptions;
+  const fund = (l.babyCash||0) + (l.babyKernel||0);
+  const yearsTo18 = a.babyBirthDate ? Math.max(0, 18 - ageOf(a.babyBirthDate)) : 18;
+  const yearsTo21 = a.babyBirthDate ? Math.max(0, 21 - ageOf(a.babyBirthDate)) : 21;
+  const fv = (yrs)=>{
+    let v = fund; for(let n=0;n<yrs;n++) v = v*(1+a.investReturn) + a.babyMonthlyContribution*12;
+    return v;
+  };
+  const at18 = fv(yearsTo18), at21 = fv(yearsTo21);
+  c.innerHTML += `
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="tile"><div class="lbl">Baby cash</div><div class="val sm">${money(l.babyCash)}</div>
+        <div class="bar-outer"><div class="bar-inner" style="width:${Math.min(100,(l.babyCash||0)/a.babyCashTarget*100)}%"></div></div>
+        <div class="sub">${pct((l.babyCash||0)/a.babyCashTarget)} of the ${money(a.babyCashTarget)} cash buffer</div></div>
+      <div class="tile cyan"><div class="lbl">Baby Kernel</div><div class="val sm cyan">${money(l.babyKernel)}</div><div class="sub">Invested, long horizon</div></div>
+      <div class="tile green"><div class="lbl">Total fund</div><div class="val sm" style="color:var(--green)">${money(fund)}</div>
+        <div class="sub">${pct(fund/a.babyFundTarget)} of the ${money(a.babyFundTarget)} target</div></div>
+      <div class="tile"><div class="lbl">Contribution</div><div class="val sm">${money(a.babyMonthlyContribution)}/mo</div><div class="sub">Set below — feeds all projections</div></div>
+    </div>
+    <div class="grid g2">
+      <div class="panel"><h3>What it becomes</h3>
+        <table><tbody>
+          <tr><td>Projected at age 18${a.babyBirthDate?'':' (assumes born today)'}</td><td class="amber"><b>${money(at18)}</b></td></tr>
+          <tr><td>≈ university support (spread over 4 years)</td><td>${money(at18/4)}/yr</td></tr>
+          <tr><td>Projected at age 21 — first-home help</td><td class="amber">${money(at21)}</td></tr>
+        </tbody></table>
+        <div class="sub" style="margin-top:10px;">Compounding at ${pct(a.investReturn)} with ${money(a.babyMonthlyContribution)}/mo added. Cash-out age setting: ${a.babyCashoutAge}.</div></div>
+      <div class="panel"><h3>Settings</h3>
+        <div class="row">
+          <div><label>Baby's birth date</label><input type="date" id="b_dob" value="${a.babyBirthDate||''}"></div>
+          <div><label>Monthly contribution ($)</label><input type="number" step="1" id="b_contrib" value="${a.babyMonthlyContribution}"></div>
+          <div><label>Cash-out age</label><input type="number" id="b_age" value="${a.babyCashoutAge}"></div>
+        </div>
+        <button class="btn" onclick="saveBaby()">Save baby settings</button>
+        <div class="sub" style="margin-top:10px;">Balances themselves live in the Snapshot log (Baby cash & Baby Kernel fields).</div></div>
+    </div>
+    <div class="banner info">By design, this page's money is excluded from FIRE assets, the FIRE page, and Coast FIRE — no toggle can add it back.</div>`;
+}
+function saveBaby(){
+  const a = state.assumptions;
+  a.babyBirthDate = $('#b_dob').value || '';
+  a.babyMonthlyContribution = clampNum($('#b_contrib').value, 0, 100000, a.babyMonthlyContribution);
+  a.babyCashoutAge = clampNum($('#b_age').value, 16, 30, a.babyCashoutAge);
+  persist(); render();
+}
+
+/* ------------------------------ ASSUMPTIONS ----------------------------- */
+function renderAssumptions(c){
+  const a = state.assumptions;
+  const p = state.profile||{};
+  c.innerHTML = `<h1 class="pagetitle">Assumptions</h1>
+    <p class="pagesub">The dials behind every projection. Change one, and the Dashboard, FIRE, Projections, Scenarios, Goals and the Decision engine all move together.</p>
+  <div class="panel"><h3>Household profile <span>— names used throughout the app</span></h3>
+    <div class="row">
+      <div><label>Partner A name</label><input type="text" id="p_nameA" value="${esc(p.nameA||'')}" placeholder="Partner A"></div>
+      <div><label>Partner B name</label><input type="text" id="p_nameB" value="${esc(p.nameB||'')}" placeholder="Partner B"></div>
+      <div><label>Child's name (optional)</label><input type="text" id="p_baby" value="${esc(p.babyName||'')}" placeholder="Leave blank for \\"Baby fund\\""></div>
+    </div>
+    <div class="row">
+      <div><label>Current city (Property &amp; Decision engine)</label><input type="text" id="p_cityHome" value="${esc(p.cityHome||'')}" placeholder="your current city"></div>
+      <div><label>Second city being considered</label><input type="text" id="p_citySecond" value="${esc(p.citySecond||'')}" placeholder="the second city"></div>
+    </div>
+    <button class="btn" onclick="saveProfile()">Save household profile</button>
+    <div class="sub" style="margin-top:10px;">These names replace every "Duard"/"Holly" label and city reference across the whole app — the Snapshot log, Income, Cash flow, Benchmark, Scenarios, FIRE, Property and Decision engine pages all update together. Nothing here is shared outside your household's login.</div>
+  </div>
+  <div class="panel"><h3>Returns &amp; growth</h3>
+    <div class="row">
+      <div><label>Investment return (% p.a.)</label><input type="number" step="0.1" id="a_invest" value="${(a.investReturn*100).toFixed(1)}"></div>
+      <div><label>Cash return (% p.a.)</label><input type="number" step="0.1" id="a_cash" value="${(a.cashReturn*100).toFixed(1)}"></div>
+      <div><label>Mortgage rate (% p.a.)</label><input type="number" step="0.1" id="a_mort" value="${(a.mortgageRate*100).toFixed(1)}"></div>
+      <div><label>${cityHome()} property growth (% p.a.)</label><input type="number" step="0.1" id="a_prop" value="${(a.propertyGrowth*100).toFixed(1)}"></div>
+    </div></div>
+  <div class="panel"><h3>Contributions &amp; horizon</h3>
+    <div class="row">
+      <div><label>Annual contribution to FIRE assets ($)</label><input type="number" id="a_contrib" value="${a.annualContribution}"></div>
+      <div><label>Projection horizon (years)</label><input type="number" id="a_horizon" value="${a.horizon}"></div>
+      <div><label>Selling costs if ${cityHome()} sold ($)</label><input type="number" id="a_sell" value="${a.sellingCosts}"></div>
+    </div>
+    <div class="sub" style="margin-top:8px;">Tip: the Cash flow tab can push your real household surplus into the annual contribution with one tap.</div></div>
+  <button class="btn" onclick="saveAssumptions()">Save assumptions</button>
+  <div style="height:16px"></div>
+  <div class="banner info">Related dials live where you use them: FIRE toggle &amp; withdrawal rate → FIRE page · goal targets &amp; dates → Goals · second-city purchase inputs → Decision engine · rent &amp; mortgage → Income · rates &amp; insurance → Budget.</div>
+  <div class="banner"><b>Security notes.</b> This app's source code is public if hosted on GitHub Pages — that's expected and safe: it contains only the seed/demo values and a publishable Supabase key. Your real household data lives in Supabase behind your logins with row-level security; this device only keeps an offline cache. Export a backup occasionally, and never share the Supabase <i>secret</i> keys with anyone.</div>`;
+}
+function saveProfile(){
+  state.profile = state.profile || {};
+  state.profile.nameA = ($('#p_nameA').value||'').trim().slice(0,40) || 'Partner A';
+  state.profile.nameB = ($('#p_nameB').value||'').trim().slice(0,40) || 'Partner B';
+  state.profile.babyName = ($('#p_baby').value||'').trim().slice(0,40);
+  state.profile.cityHome = ($('#p_cityHome').value||'').trim().slice(0,60) || 'your current city';
+  state.profile.citySecond = ($('#p_citySecond').value||'').trim().slice(0,60) || 'the second city';
+  persist(); render();
+}
+function saveAssumptions(){
+  const a = state.assumptions;
+  a.investReturn = clampNum($('#a_invest').value, -50, 50, a.investReturn*100)/100;
+  a.cashReturn = clampNum($('#a_cash').value, -50, 50, a.cashReturn*100)/100;
+  a.mortgageRate = clampNum($('#a_mort').value, 0, 30, a.mortgageRate*100)/100;
+  a.propertyGrowth = clampNum($('#a_prop').value, -20, 50, a.propertyGrowth*100)/100;
+  a.annualContribution = clampNum($('#a_contrib').value, 0, 10000000, a.annualContribution);
+  a.horizon = clampNum($('#a_horizon').value, 5, 60, a.horizon);
+  a.sellingCosts = clampNum($('#a_sell').value, 0, 10000000, a.sellingCosts);
+  persist(); render();
+}
+function applyCashflowToProjections(){
+  captureCf();
+  const cf = cashflowAnnual();
+  const net = Math.round(cf.net);
+  if(net <= 0){ alert("Household surplus is currently " + moneyRaw(net) + "/yr — Projections needs a positive contribution, so nothing was changed."); return; }
+  state.assumptions.annualContribution = net;
+  persist(); render();
+  alert("Projections, Scenarios, FIRE and Goals now use " + moneyRaw(net) + "/yr as the annual contribution.");
+}
+
+/* ------------------------------ DATA HEALTH ----------------------------- */
+function healthChecks(){
+  const out = [];
+  const push = (level, msg, fix)=> out.push({level, msg, fix});
+  const l = latest();
+  const daysOld = d => Math.floor((new Date() - new Date(d))/(1000*60*60*24));
+  // demo data
+  if(state.snapshots.length===1 && state.snapshots[0].notes==='Starter row'){
+    push('info','You\u2019re looking at the seed/demo starter data.','Log a fresh snapshot to make it yours — the seed row can then be edited or deleted.');
+  }
+  if(!l){ push('warn','No snapshot data at all.','Add your first entry on the Snapshot log.'); return out; }
+  const age = daysOld(l.date);
+  if(age > 35) push('warn','Latest snapshot is '+age+' days old.','Log a fresh snapshot — everything downstream is only as current as this.');
+  else push('ok','Latest snapshot is '+age+' day'+(age===1?'':'s')+' old — nicely current.','');
+  if(age > 90) push('warn','Property value and mortgage are over 90 days stale.','Update them via Property → Keep values current.');
+  const s = sortedSnaps();
+  if(s.length>=2 && s[s.length-1].mortgage === s[s.length-2].mortgage)
+    push('info','Mortgage balance hasn\u2019t changed between your last two snapshots.','It should fall a little each period — grab the live balance from your bank.');
+  if(s.length>=3 && s.slice(-3).every(r=>r.marketValue===s[s.length-1].marketValue))
+    push('info','Market value has been identical for 3 entries.','Check homes.co.nz for a fresh estimate.');
+  // income & cashflow
+  const hollyIn = state.cashflow.items.some(i=>i.type==='in' && i.owner==='Holly' && cfAnnual(i)>0);
+  if(!hollyIn || !(state.income.posttaxFortH>0)) push('warn','Holly\u2019s income looks missing or zero.','Check the Income page and the Cash flow "in" items.');
+  else push('ok','Both incomes present.','');
+  const zeroItems = state.cashflow.items.filter(i=>!(Number(i.amount)>0));
+  if(zeroItems.length) push('warn', zeroItems.length+' cash-flow item'+(zeroItems.length===1?' has':'s have')+' a zero or missing amount.','Fill in or delete: '+zeroItems.map(i=>esc(i.name)).join(', ')+'.');
+  const noCat = state.cashflow.items.filter(i=>!i.cat || i.cat==='General');
+  if(noCat.length) push('info', noCat.length+' cash-flow item'+(noCat.length===1?'':'s')+' sitting in "General".','Categorise them so the spending doughnut means something.');
+  // assumptions
+  if(state.assumptions.hbRentPaidFortnightly===650) push('info',citySecond()+' rent is still the placeholder estimate ($'+a.hbRentPaidFortnightly+'/fn).','Set your real expected rent on the Decision engine.');
+  if(!state.assumptions.babyBirthDate) push('info','No baby birth date set.','Add it on the Baby fund page for accurate age-18 projections.');
+  // connection
+  if(!isConfigured()) push('warn','Supabase isn\u2019t configured in this copy.','Data is device-only until the config lines are filled in.');
+  else if(!householdId) push('info','Not signed in — changes save to this device only.','Sign in to sync with your household.');
+  else push('ok','Connected to Supabase and syncing with '+esc(householdName||'your household')+'.','');
+  return out;
+}
+function updateHealthBadge(){
+  const warns = healthChecks().filter(h=>h.level==='warn').length;
+  document.querySelectorAll('[data-health-badge]').forEach(b=>{
+    b.hidden = warns===0; b.textContent = warns;
+  });
+}
+function renderHealth(c){
+  const checks = healthChecks();
+  const warns = checks.filter(h=>h.level==='warn').length;
+  c.innerHTML = `<h1 class="pagetitle">Data health</h1>
+    <p class="pagesub">Projections are only as good as their inputs. This page keeps the inputs honest.</p>
+    <div class="insight ${warns? 'watch':'good'}" style="margin-bottom:16px;">${warns? `<b>${warns} item${warns===1?'':'s'}</b> need${warns===1?'s':''} attention.` : 'Everything checks out. <b>Clean sheet.</b>'}</div>
+    <div class="panel"><h3>Checks</h3>
+      ${checks.map(h=>`<div class="hRow"><span class="hDot ${h.level==='warn'?'warn':h.level==='info'?'info':'ok'}"></span><div>${h.msg}${h.fix?`<span class="fix">${h.fix}</span>`:''}</div></div>`).join('')}
+    </div>
+    <div class="panel"><h3>How your data is protected</h3>
+      <div class="hRow"><span class="hDot ok"></span><div>Real household data lives in Supabase, gated by your email + password logins and row-level security — only household members can read or write it.</div></div>
+      <div class="hRow"><span class="hDot ok"></span><div>This device keeps an offline cache (localStorage) so the app opens without signal; it's a cache, not the source of truth.</div></div>
+      <div class="hRow"><span class="hDot info"></span><div>If hosted on GitHub Pages, the app's source code is publicly readable. That's expected: it contains only seed/demo values and a publishable key that's designed to be public. Your logged numbers are never in this file.</div></div>
+      <div class="hRow"><span class="hDot info"></span><div>Privacy mode (the button on the top strip) hides every dollar figure on this device — handy on the bus. Percentages and trends stay visible. It never syncs, so your partner's screen is unaffected.</div></div>
+      <div class="hRow"><span class="hDot ok"></span><div>Export a backup (.json) from the menu every month or two — belt and braces.</div></div>
+    </div>`;
+}
+
+/* --------------------------------- BOOT ---------------------------------- */
+async function boot(){
+  buildChrome();
+  render();
+  if(!isConfigured()){ authUI(configScreen()); return; }
+  if(typeof window.supabase === 'undefined'){
+    authUI(`<h2>Offline</h2><div class="sub2">Couldn't load the sync library — check your connection and reload. Your cached data is shown behind this message.</div>
+    <button class="btn secondary" onclick="hideAuth()">Continue offline</button>`);
+    try{ const raw = localStorage.getItem(CACHE_KEY); if(raw) mergeState(JSON.parse(raw)); render(); }catch(e){}
+    return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){
+    myUserId = session.user.id; myEmail = session.user.email || "";
+    await enterHousehold();
+  } else {
+    authUI(loginScreen('signin'));
+  }
+  sb.auth.onAuthStateChange(async (event, sess)=>{
+    if(event === 'SIGNED_IN' && sess && sess.user.id !== myUserId){
+      myUserId = sess.user.id; myEmail = sess.user.email || "";
+      await enterHousehold();
+    }
+    if(event === 'SIGNED_OUT'){
+      myUserId = null; myEmail = "";
+      state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      render();
+      authUI(loginScreen('signin'));
+    }
+  });
+}
+boot();
+
+</script>
+</body>
+</html>
