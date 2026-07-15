@@ -52,6 +52,7 @@
   #content > *:nth-child(3){animation-delay:.09s;}
   #content > *:nth-child(4){animation-delay:.13s;}
   #content > *:nth-child(n+5){animation-delay:.16s;}
+  #content.noanim > *{animation:none;}
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{transition:none !important;animation:none !important;}
   }
@@ -493,7 +494,7 @@ let state = {
   birthDates: { duard:"1994-03-12", holly:"1993-08-25" },
   birthDate: "1994-03-12", // legacy key, kept for older saved data
   profile: {
-    nameA:"Partner A", nameB:"Partner B", babyName:"",
+    nameA:"Partner A", nameB:"Partner B", babyName:"", solo:false,
     cityHome:"your current city", citySecond:"the second city"
   },
   valuationBasis: "market"
@@ -605,10 +606,15 @@ function ageOf(dateStr, on){
 }
 const duardAge = () => ageOf(state.birthDates.duard);
 const hollyAge = () => ageOf(state.birthDates.holly);
+/* Household composition. 'Holly'/'Duard' are legacy internal slot keys:
+   slot A ('Holly') is the primary person, slot B ('Duard') the optional
+   second partner. isSolo() hides every slot-B field across the app.     */
+const isSolo = () => !!(state.profile && state.profile.solo);
+const OWNERS = () => isSolo() ? ['Holly','Joint'] : ['Holly','Duard','Joint'];
 function personLabel(who){
   const p = state.profile||{};
   if(who==='Duard') return p.nameB || 'Partner B';
-  if(who==='Holly') return p.nameA || 'Partner A';
+  if(who==='Holly') return p.nameA || (isSolo() ? 'Me' : 'Partner A');
   if(who==='Joint') return 'Joint';
   return who;
 }
@@ -689,7 +695,7 @@ function amortizePath(balance, rate, annualPayment, years){
 function ksAnnualTotal(){
   const k=state.kiwisaver, inc=state.income;
   const m = k.employerMatch ? 2 : 1;
-  return inc.pretaxH*k.rateH*m + inc.pretaxD*k.rateD*m;
+  return inc.pretaxH*k.rateH*m + (isSolo() ? 0 : inc.pretaxD*k.rateD*m);
 }
 function cashflowAnnual(){
   const all = state.cashflow.items;
@@ -749,7 +755,7 @@ function fireNumbers(){
   const yrsFat  = p ? yearsUntil(p.fire, targets.fat)  : null;
   const passive = k.fireAssets * swr;
   const aD = duardAge(), aH = hollyAge();
-  const yearsTo65 = Math.max(1, 65 - Math.min(aD,aH));
+  const yearsTo65 = Math.max(1, 65 - (isSolo() ? aH : Math.min(aD,aH)));
   const coastNumber = targets.base / Math.pow(1+a.investReturn, yearsTo65);
   return {k, swr, spendBase, targets, yrsSet, yrsLean, yrsBase, yrsFat, passive,
     coastNumber, coastReached: k.fireAssets>=coastNumber, aD, aH};
@@ -865,7 +871,7 @@ function configScreen(){
 function loginScreen(mode){
   const signup = mode==='signup';
   return `<h2>${signup?'Create your account':'Welcome back'}</h2>
-  <div class="sub2">${signup?'Set up your household — you can invite your partner once you\'re in.':'Ferreira Wealth OS — private household finances'}</div>
+  <div class="sub2">${signup?'Set up your household — solo or with a partner, you can invite them any time.':'Ferreira Wealth OS — private household finances'}</div>
   <label>Email</label><input type="text" id="a_email" autocomplete="username" inputmode="email">
   <label>Password</label><input type="password" id="a_pass" autocomplete="${signup?'new-password':'current-password'}">
   <button class="btn" onclick="${signup?'doSignUp()':'doSignIn()'}">${signup?'Create account':'Sign in'}</button>
@@ -876,12 +882,12 @@ function loginScreen(mode){
 }
 function householdScreen(){
   return `<h2>Your household</h2>
-  <div class="sub2">Signed in as ${esc(myEmail)}. Link up with your partner:</div>
-  <label>Create a new household (first person does this)</label>
+  <div class="sub2">Signed in as ${esc(myEmail)}. A household holds your data — create your own, or join someone else's:</div>
+  <label>Create a new household (works solo too)</label>
   <input type="text" id="h_name" placeholder="e.g. The Smith household">
   <button class="btn" onclick="doCreateHousehold()">Create household</button>
   <div style="border-top:1px solid var(--grid);margin:18px 0 6px 0;"></div>
-  <label>Or join with your partner's invite code</label>
+  <label>Or join an existing household with an invite code</label>
   <input type="text" id="h_code" placeholder="6-character code" style="text-transform:uppercase;">
   <button class="btn secondary" onclick="doJoinHousehold()">Join household</button>
   <button class="authLink" onclick="doSignOut()">Sign out</button>
@@ -890,7 +896,7 @@ function householdScreen(){
 function accountScreen(){
   return `<h2>Account &amp; invite</h2>
   <div class="sub2">${esc(myEmail)} · ${esc(householdName||'household')}</div>
-  <label>Invite code — give this to your partner so they can join</label>
+  <label>Invite code — anyone you give this to joins your household and sees its data</label>
   <div class="codeBig">${esc(joinCode||'—')}</div>
   <button class="btn secondary" onclick="navigator.clipboard && navigator.clipboard.writeText('${esc(joinCode)}'); authMsg('Copied to clipboard.')">Copy code</button>
   <button class="btn secondary" onclick="hideAuth()">Back to the app</button>
@@ -932,7 +938,7 @@ async function doJoinHousehold(){
   if(code.length<4){ authMsg('Enter the 6-character invite code.', true); return; }
   authMsg('Joining…');
   const { error } = await sb.rpc('join_household', { p_code: code });
-  if(error){ authMsg(error.message.includes('Invalid')?'Invalid invite code — double-check it with your partner.':error.message, true); return; }
+  if(error){ authMsg(error.message.includes('Invalid')?'Invalid invite code — double-check it with whoever sent it.':error.message, true); return; }
   await enterHousehold();
 }
 async function enterHousehold(){
@@ -1134,11 +1140,16 @@ function actReset(){
 
 let charts = {};
 let activeTab = "dash";
+let renderedTab = null;
 function render(){
   document.querySelectorAll('.navbtn[data-tab]').forEach(b=> b.classList.toggle('active', b.dataset.tab===activeTab));
   renderTicker();
   updateHealthBadge();
-  const c = $('#content'); c.innerHTML = "";
+  // entrance animation only when arriving on a tab, not on every in-page save
+  const c = $('#content');
+  c.classList.toggle('noanim', renderedTab===activeTab);
+  renderedTab = activeTab;
+  c.innerHTML = "";
   const pages = {dash:renderDash, review:renderReview, trends:renderTrends, benchmark:renderBenchmark,
     fire:renderFire, proj:renderProj, scenarios:renderScenarios, goals:renderGoals, baby:renderBaby,
     log:renderLog, cashflow:renderCashflow, budget:renderBudget, income:renderIncome,
@@ -1281,8 +1292,8 @@ function holdingsRows(l){
     ["Offset","Investable · Committed", l.offset],
     ["Joint Kernel","Investable · FIRE", l.jointKernel],
     ["Hatch","Investable · FIRE", l.hatch],
-    [personLabel("Duard")+" KiwiSaver","Locked retirement", l.duardKS],
     [personLabel("Holly")+" KiwiSaver","Locked retirement", l.hollyKS],
+    ...(isSolo() && !(l.duardKS>0) ? [] : [[personLabel("Duard")+" KiwiSaver","Locked retirement", l.duardKS]]),
     ["Baby cash","Ring-fenced", l.babyCash],
     ["Baby Kernel","Ring-fenced", l.babyKernel],
     ["Holiday savings","Committed", l.holidaySavings],
@@ -1438,24 +1449,26 @@ function renderBenchmark(c){
   const aD = duardAge(), aH = hollyAge();
   const peer2021 = 34000;
   const peerUp = Math.round(peer2021*1.33/500)*500;
-  const peerCouple = peerUp*2;
+  const solo = isSolo();
+  const peerCouple = solo ? peerUp : peerUp*2;
   const nzMedian = 529000;
   const ks30s = 27500, ksAll = 41286;
+  const peerLabel = solo ? 'Est. NZ peer (25–34)' : 'Est. NZ peer couple (25–34)';
   c.innerHTML += `
-    <div class="banner">${personLabel("Duard")} is ${aD}, ${personLabel("Holly")} is ${aH}. Benchmarks use the closest published NZ age band (25–34).</div>
+    <div class="banner">${solo ? `${personLabel("Holly")} is ${aH}.` : `${personLabel("Duard")} is ${aD}, ${personLabel("Holly")} is ${aH}.`} Benchmarks use the closest published NZ age band (25–34).</div>
     <div class="grid g3" style="margin-bottom:16px;">
       <div class="tile"><div class="lbl">Your net worth (market)</div><div class="val amber">${money(k.netWorth)}</div></div>
-      <div class="tile cyan"><div class="lbl">Est. NZ peer couple (25–34)</div><div class="val cyan">~${money(peerCouple)}</div>
-        <div class="sub">2 × individual median, uplifted from 2021 to today's dollars</div></div>
+      <div class="tile cyan"><div class="lbl">${peerLabel}</div><div class="val cyan">~${money(peerCouple)}</div>
+        <div class="sub">${solo?'Individual median':'2 × individual median'}, uplifted from 2021 to today's dollars</div></div>
       <div class="tile green"><div class="lbl">You're tracking at</div><div class="val" style="color:var(--green)">${PRIVACY?'•••':(k.netWorth/peerCouple*100).toFixed(0)+'%'}</div>
-        <div class="sub">of the estimated peer-couple benchmark</div></div>
+        <div class="sub">of the estimated peer benchmark</div></div>
     </div>
     <div class="panel"><h3>Net worth vs benchmarks</h3><div class="chartWrap"><canvas id="chartBench"></canvas></div></div>
     <div class="grid g2">
       <div class="panel"><h3>KiwiSaver vs NZ averages</h3>
         <table><thead><tr><th></th><th>Balance</th><th>NZ 30s avg</th><th>NZ all-ages avg</th></tr></thead><tbody>
           <tr><td>${personLabel("Holly")}</td><td class="cyan">${money(l.hollyKS)}</td><td>${money(ks30s)}</td><td>${money(ksAll)}</td></tr>
-          <tr><td>${personLabel("Duard")}</td><td class="cyan">${money(l.duardKS)}</td><td>${money(ks30s)}</td><td>${money(ksAll)}</td></tr>
+          ${solo?'':`<tr><td>${personLabel("Duard")}</td><td class="cyan">${money(l.duardKS)}</td><td>${money(ks30s)}</td><td>${money(ksAll)}</td></tr>`}
         </tbody></table>
         <div class="sub" style="margin-top:8px;">Source: Retirement Commission / Melville Jessup Weaver, balances at 31 Dec 2024.</div></div>
       <div class="panel"><h3>Wider context</h3>
@@ -1469,7 +1482,7 @@ function renderBenchmark(c){
   const ctx = document.getElementById('chartBench');
   if(charts.bench) charts.bench.destroy();
   charts.bench = makeChart(ctx, {type:'bar', data:{
-    labels:['You (combined)','Est. peer couple (25–34)','NZ household median'],
+    labels:[isSolo()?'You':'You (combined)', isSolo()?'Est. peer (25–34)':'Est. peer couple (25–34)','NZ household median'],
     datasets:[{data:[k.netWorth, peerCouple, nzMedian], backgroundColor:['#C98500','#3987E5','#6E7683'], borderRadius:4}]
   }, options:{...chartOptions('$'), plugins:{legend:{display:false}, tooltip:{enabled:!PRIVACY}}}});
 }
@@ -1492,7 +1505,7 @@ function renderFire(c){
       <div class="tile cyan"><div class="lbl">Passive income today</div><div class="val cyan sm">${money(f.passive)}/yr</div>
         <div class="sub">FIRE assets × ${pct(f.swr)} safe withdrawal rate</div></div>
       <div class="tile"><div class="lbl">Years to your target</div><div class="val sm">${f.yrsSet===null?'>45':f.yrsSet}</div>
-        <div class="sub">${fireYear?`Projected ${fireYear} — ${personLabel('Duard')} ${f.aD + f.yrsSet}, ${personLabel('Holly')} ${f.aH + f.yrsSet}`:'Beyond the projection horizon at current pace'}</div></div>
+        <div class="sub">${fireYear?`Projected ${fireYear} — ${personLabel('Holly')} ${f.aH + f.yrsSet}${isSolo()?'':`, ${personLabel('Duard')} ${f.aD + f.yrsSet}`}`:'Beyond the projection horizon at current pace'}</div></div>
     </div>
     <div class="panel" style="overflow-x:auto;">
       <h3>Lean · Base · Fat <span>— targets derived from your actual spending (${money(f.spendBase)}/yr from Cash flow)</span></h3>
@@ -1580,11 +1593,13 @@ function renderScenarios(c){
   const aD = duardAge(), aH = hollyAge();
   const cons = projectWealth({rAdj:-0.02}).nw, base = projectWealth({}).nw, opt = projectWealth({rAdj:0.02}).nw;
   const thisYear = new Date().getFullYear();
-  _scen = {aD, aH, cons, base, opt, thisYear, fireTarget:a.fireTarget};
+  const solo = isSolo();
+  const pivot = solo ? aH : aD; // age driving the x-axis and milestone rows
+  _scen = {aD, aH, solo, pivot, cons, base, opt, thisYear, fireTarget:a.fireTarget};
   const milestones = [35,40,45,50,55,60,65,70];
   c.innerHTML += `
     <div class="panel">
-      <h3>Net worth by age <span>— shown against both your ages</span></h3>
+      <h3>Net worth by age <span>— ${solo?'shown against your age':'shown against both your ages'}</span></h3>
       <div class="chartWrap" style="height:340px;"><canvas id="chartScenarios"></canvas></div>
       <div class="row" style="margin-top:8px;">
         <div style="color:var(--muted);font-size:11px;"><span style="color:#D55181;">■</span> Conservative (${pct(Math.max(0,a.investReturn-0.02))})</div>
@@ -1595,15 +1610,15 @@ function renderScenarios(c){
     <div class="panel" id="scenarioDetail"><h3>Inspect a year</h3><div class="sub">Tap any point on the chart, or a row below.</div></div>
     <div class="panel" style="overflow-x:auto;">
       <h3>Milestone ages</h3>
-      <table><thead><tr><th>${personLabel("Duard")}</th><th>${personLabel("Holly")}</th><th>Year</th><th>Conservative</th><th>Base</th><th>Optimistic</th><th>FIRE target?</th></tr></thead><tbody>
+      <table><thead><tr><th>${solo?personLabel("Holly"):personLabel("Duard")}</th>${solo?'':`<th>${personLabel("Holly")}</th>`}<th>Year</th><th>Conservative</th><th>Base</th><th>Optimistic</th><th>FIRE target?</th></tr></thead><tbody>
       ${milestones.map(age=>{
-        const n = age-aD; if(n<0||n>=base.length) return '';
+        const n = age-pivot; if(n<0||n>=base.length) return '';
         const hit = base[n]>=a.fireTarget?`<span class="pos">✓ base case</span>`:(opt[n]>=a.fireTarget?`<span class="cyan">optimistic only</span>`:`<span class="muted">not yet</span>`);
-        return `<tr style="cursor:pointer" onclick="showScenarioDetail(${n})"><td>${age}</td><td>${aH+n}</td><td>${thisYear+n}</td><td>${money(cons[n])}</td><td><b>${money(base[n])}</b></td><td>${money(opt[n])}</td><td>${hit}</td></tr>`;
+        return `<tr style="cursor:pointer" onclick="showScenarioDetail(${n})"><td>${age}</td>${solo?'':`<td>${aH+n}</td>`}<td>${thisYear+n}</td><td>${money(cons[n])}</td><td><b>${money(base[n])}</b></td><td>${money(opt[n])}</td><td>${hit}</td></tr>`;
       }).join('')}
       </tbody></table>
     </div>`;
-  const labels = base.map((_,n)=>aD+n).filter(age=>age<=75);
+  const labels = base.map((_,n)=>pivot+n).filter(age=>age<=75);
   const trim = arr => arr.slice(0, labels.length);
   const ctx = document.getElementById('chartScenarios');
   if(charts.scenarios) charts.scenarios.destroy();
@@ -1617,14 +1632,14 @@ function renderScenarios(c){
 }
 function showScenarioDetail(n){
   if(!_scen) return;
-  const {aD, aH, cons, base, opt, thisYear, fireTarget} = _scen;
+  const {aD, aH, solo, cons, base, opt, thisYear, fireTarget} = _scen;
   if(n<0 || n>=base.length) return;
   const el = document.getElementById('scenarioDetail'); if(!el) return;
   const fire = base[n]>=fireTarget ? `<span class="pos">✓ FIRE target reached in the base case</span>`
     : (opt[n]>=fireTarget ? `<span class="cyan">Reached in the optimistic case only</span>`
     : `<span class="muted">${money(fireTarget-base[n])} short of the target (base case)</span>`);
   el.innerHTML = `
-    <h3>${personLabel("Duard")} ${aD+n} · ${personLabel("Holly")} ${aH+n} · ${thisYear+n}</h3>
+    <h3>${solo?`${personLabel("Holly")} ${aH+n}`:`${personLabel("Duard")} ${aD+n} · ${personLabel("Holly")} ${aH+n}`} · ${thisYear+n}</h3>
     <div class="grid g3">
       <div class="tile red"><div class="lbl">Conservative</div><div class="val md" style="color:var(--red)">${money(cons[n])}</div></div>
       <div class="tile"><div class="lbl">Base</div><div class="val md amber">${money(base[n])}</div></div>
@@ -1640,7 +1655,8 @@ function getFieldDefs(){ return [
   ["cashSavings","Cash savings","number"],["cashBuffer","Cash buffer","number"],
   ["offset","Offset","number"],["jointKernel","Joint Kernel","number"],
   ["babyCash","Baby cash","number"],["babyKernel","Baby Kernel","number"],
-  ["hatch","Hatch","number"],["duardKS", personLabel("Duard")+" KiwiSaver","number"],
+  ["hatch","Hatch","number"],
+  ...(isSolo() ? [] : [["duardKS", personLabel("Duard")+" KiwiSaver","number"]]),
   ["hollyKS", personLabel("Holly")+" KiwiSaver","number"],["bankValue","House — bank valuation","number"],
   ["marketValue","House — market value (homes.co.nz)","number"],["mortgage","Mortgage balance","number"],
   ["carsValue","Cars","number"],["holidaySavings","Holiday savings","number"],
@@ -1690,7 +1706,8 @@ function openModal(idx){
 }
 function closeModal(){ $('#entryModal').classList.remove('show'); }
 function saveEntry(){
-  const r = {};
+  // start from the existing row so fields hidden by household type survive edits
+  const r = editIndex!==null ? Object.assign({}, state.snapshots[editIndex]) : {};
   let valid = true;
   getFieldDefs().forEach(([key,label,type])=>{
     const el = $('#f_'+key); if(!el) return;
@@ -1745,7 +1762,7 @@ function renderCashflow(c){
   const provision = irregular.reduce((s,i)=>s+cfAnnual(i),0)/12;
   c.innerHTML = `<h1 class="pagetitle">Cash flow</h1>
   <p class="pagesub">Every income and expense, normalised across frequencies so a yearly bill and a weekly habit compare fairly. Filter by person to see individual flows.</p>
-  <div class="filterRow">${['All','Holly','Duard','Joint'].map(f=>
+  <div class="filterRow">${['All',...OWNERS()].map(f=>
     `<button class="btn small ${cfFilter===f?'':'secondary'}" onclick="setCfFilter('${f}')">${f==='All'||f==='Joint'?f:personLabel(f)}</button>`).join('')}</div>
   <div class="grid g4" style="margin-bottom:14px;">
     <div class="tile green"><div class="lbl">Money in / month</div><div class="val" style="color:var(--green)">${money(inAnn/12)}</div><div class="sub">${money(inAnn/26)} /fn · ${money(inAnn)} /yr</div></div>
@@ -1767,7 +1784,7 @@ function renderCashflow(c){
       const ann = cfAnnual(it);
       return `<tr data-id="${esc(it.id)}">
       <td><input class="cf-name" type="text" value="${esc(it.name)}"></td>
-      <td><select class="cf-owner">${['Holly','Duard','Joint'].map(o=>`<option value="${o}" ${it.owner===o?'selected':''}>${o==='Joint'?'Joint':personLabel(o)}</option>`).join('')}</select></td>
+      <td><select class="cf-owner">${[...new Set([...OWNERS(), it.owner])].map(o=>`<option value="${o}" ${it.owner===o?'selected':''}>${o==='Joint'?'Joint':personLabel(o)}</option>`).join('')}</select></td>
       <td><select class="cf-cat">${CF_CATS.map(o=>`<option ${it.cat===o?'selected':''}>${o}</option>`).join('')}</select></td>
       <td><select class="cf-type"><option value="in" ${it.type==='in'?'selected':''}>In</option><option value="out" ${it.type==='out'?'selected':''}>Out</option></select></td>
       <td><input class="cf-amt" type="number" step="0.01" inputmode="decimal" value="${it.amount}"></td>
@@ -1783,7 +1800,7 @@ function renderCashflow(c){
     <button class="btn secondary" onclick="applyCashflowToProjections()" style="margin-left:8px;">Send surplus to Projections</button>
   </div>
   <div class="banner">The savings rate here feeds the Dashboard and the FIRE page's lean/base/fat targets. Keep it honest — include everything, even the small stuff.</div>`;
-  const owners = ['Holly','Duard','Joint'];
+  const owners = OWNERS();
   const inBy  = owners.map(o=> all.filter(i=>i.owner===o&&i.type==='in').reduce((s,i)=>s+cfAnnual(i),0)/12);
   const outBy = owners.map(o=> all.filter(i=>i.owner===o&&i.type==='out').reduce((s,i)=>s+cfAnnual(i),0)/12);
   const ctxO = document.getElementById('cfOwners');
@@ -1811,7 +1828,7 @@ function renderBudget(c){
   const ri = state.ratesInsurance, b = state.budget;
   const riTotal = ri.rates + ri.landlordInsurance + ri.contentsInsurance*12 + ri.lifeInsurance;
   c.innerHTML = `<h1 class="pagetitle">Budget</h1>
-  <p class="pagesub">Rates &amp; insurance plus your fortnightly budget across the three income scenarios. Everything is editable — change a number, press Save.</p>
+  <p class="pagesub">Rates &amp; insurance plus your fortnightly budget across as many income scenarios as you like. Everything is editable — rename columns, add rows, change numbers, press Save.</p>
   <div class="panel">
     <h3>Rates &amp; insurance <span>— annual totals</span></h3>
     <div class="row">
@@ -1823,22 +1840,28 @@ function renderBudget(c){
     <div class="sub" style="margin-top:10px;">Annual total: <b style="color:var(--white)">${money(riTotal)}</b> · ${esc(ri.lifeNote)} · These figures feed the Property page and Decision engine.</div>
     <button class="btn" onclick="saveRatesIns()">Save rates &amp; insurance</button>
   </div>
-  <div class="banner info"><b>Scenario key:</b> the three columns are the household's income scenarios you're comparing — rename them in the table below to whatever fits (e.g. "${personLabel('Holly')} current", "${personLabel('Duard')} current", "Combined").</div>
+  <div class="banner info"><b>Scenario key:</b> each column is one income scenario you're comparing — rename, add or remove columns to model any situation (one income, two incomes, a pay rise, going part-time…).</div>
   <div class="panel" style="overflow-x:auto;">
-    <h3>Fortnightly household budget <span>— tap any number to edit</span></h3>
-    <table><thead><tr><th>Item</th><th>Account</th>${b.scenarios.map(s=>`<th>${esc(s)}</th>`).join('')}</tr></thead><tbody>
-    ${b.rows.map((r,ri2)=>`<tr><td>${esc(r.item)}</td><td class="muted">${esc(r.account||'-')}</td>${r.vals.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" inputmode="decimal" data-r="${ri2}" data-c="${ci}" value="${v===null?'':v}" placeholder="—"></td>`).join('')}</tr>`).join('')}
+    <h3>Fortnightly household budget <span>— every cell, row name and column is editable</span></h3>
+    <table><thead><tr><th>Item</th><th>Account</th>${b.scenarios.map((s,ci)=>`<th><span style="display:inline-flex;gap:2px;align-items:center;"><input class="cellIn scName" type="text" data-sc="${ci}" value="${esc(s)}" style="width:150px;text-align:left;">${b.scenarios.length>1?`<button class="iconBtn" aria-label="Remove scenario ${esc(s)}" onclick="delScenario(${ci})">✕</button>`:''}</span></th>`).join('')}<th></th></tr></thead><tbody>
+    ${b.rows.map((r,ri2)=>`<tr>
+      <td><input class="cellIn rowItem" type="text" data-ri="${ri2}" value="${esc(r.item)}" style="width:160px;text-align:left;"></td>
+      <td><input class="cellIn rowAcct" type="text" data-ra="${ri2}" value="${esc(r.account||'')}" placeholder="—" style="width:140px;text-align:left;"></td>
+      ${r.vals.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" inputmode="decimal" data-r="${ri2}" data-c="${ci}" value="${v===null?'':v}" placeholder="—"></td>`).join('')}
+      <td><button class="iconBtn" aria-label="Remove row ${esc(r.item)}" onclick="delBudgetRow(${ri2})">✕</button></td></tr>`).join('')}
     <tr style="border-top:1px solid var(--grid);"><td><b>Computed total after expenses</b></td><td></td>${b.scenarios.map((s,ci)=>{
       const income = (b.rows.find(r=>r.item==='Income')||{vals:[]}).vals[ci]||0;
       const expenses = b.rows.filter(r=>r.item!=='Income').reduce((s2,r)=>s2+(r.vals[ci]||0),0);
       return `<td>${money(income-expenses)}</td>`;
-    }).join('')}</tr>
-    <tr><td class="muted">Your stated total after expenses</td><td></td>${b.statedTotalAfterExpenses.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" data-ste="${ci}" value="${v===null?'':v}"></td>`).join('')}</tr>
-    <tr><td>Life Savings</td><td class="muted">Life Savings</td>${b.lifeSavings.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" data-ls="${ci}" value="${v===null?'':v}"></td>`).join('')}</tr>
-    <tr><td class="muted">Your stated total after expenses &amp; savings</td><td></td>${b.statedTotalAfterSavings.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" data-sts="${ci}" value="${v===null?'':v}"></td>`).join('')}</tr>
+    }).join('')}<td></td></tr>
+    <tr><td class="muted">Your stated total after expenses</td><td></td>${b.statedTotalAfterExpenses.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" data-ste="${ci}" value="${v===null?'':v}"></td>`).join('')}<td></td></tr>
+    <tr><td>Life Savings</td><td class="muted">Life Savings</td>${b.lifeSavings.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" data-ls="${ci}" value="${v===null?'':v}"></td>`).join('')}<td></td></tr>
+    <tr><td class="muted">Your stated total after expenses &amp; savings</td><td></td>${b.statedTotalAfterSavings.map((v,ci)=>`<td><input class="cellIn" type="number" step="0.01" data-sts="${ci}" value="${v===null?'':v}"></td>`).join('')}<td></td></tr>
     </tbody></table>
+    <button class="btn secondary" onclick="addBudgetRow()" style="margin-right:8px;">+ Add row</button>
+    <button class="btn secondary" onclick="addScenario()" style="margin-right:8px;">+ Add scenario</button>
     <button class="btn" onclick="saveBudget()">Save budget</button>
-    <div class="sub" style="margin-top:10px;">Changes apply when you press Save. For the per-person money-in / money-out view with charts, see Cash flow.</div>
+    <div class="sub" style="margin-top:10px;">Changes apply when you press Save. The row named exactly "Income" is treated as the money-in line for the computed total. For the per-person money-in / money-out view with charts, see Cash flow.</div>
   </div>`;
 }
 function saveRatesIns(){
@@ -1849,8 +1872,14 @@ function saveRatesIns(){
   ri.lifeInsurance = clampNum($('#ri_life').value, 0, 1000000, ri.lifeInsurance);
   persist(); render();
 }
-function saveBudget(){
+function captureBudget(){
   const b = state.budget;
+  document.querySelectorAll('input.scName').forEach(inp=>{
+    b.scenarios[+inp.dataset.sc] = inp.value.trim() || ('Scenario '+(+inp.dataset.sc+1)); });
+  document.querySelectorAll('input.rowItem').forEach(inp=>{
+    b.rows[+inp.dataset.ri].item = inp.value.trim() || 'Item'; });
+  document.querySelectorAll('input.rowAcct').forEach(inp=>{
+    b.rows[+inp.dataset.ra].account = inp.value.trim(); });
   const grab = (sel, apply) => document.querySelectorAll(sel).forEach(inp=>{
     const v = inp.value==='' ? null : clampNum(inp.value, -1000000, 1000000, 0);
     apply(inp, v);
@@ -1859,6 +1888,37 @@ function saveBudget(){
   grab('input.cellIn[data-ste]', (inp,v)=>{ b.statedTotalAfterExpenses[+inp.dataset.ste]=v; });
   grab('input.cellIn[data-ls]', (inp,v)=>{ b.lifeSavings[+inp.dataset.ls]=v; });
   grab('input.cellIn[data-sts]', (inp,v)=>{ b.statedTotalAfterSavings[+inp.dataset.sts]=v; });
+}
+function saveBudget(){ captureBudget(); persist(); render(); }
+function addScenario(){
+  captureBudget();
+  const b = state.budget;
+  b.scenarios.push('Scenario '+(b.scenarios.length+1));
+  b.rows.forEach(r=>r.vals.push(null));
+  b.lifeSavings.push(null); b.statedTotalAfterExpenses.push(null); b.statedTotalAfterSavings.push(null);
+  persist(); render();
+}
+function delScenario(ci){
+  captureBudget();
+  const b = state.budget;
+  if(b.scenarios.length<=1) return;
+  if(!confirm('Remove the scenario "'+b.scenarios[ci]+'" and its column of numbers?')) return;
+  b.scenarios.splice(ci,1);
+  b.rows.forEach(r=>r.vals.splice(ci,1));
+  [b.lifeSavings, b.statedTotalAfterExpenses, b.statedTotalAfterSavings].forEach(a=>a.splice(ci,1));
+  persist(); render();
+}
+function addBudgetRow(){
+  captureBudget();
+  const b = state.budget;
+  b.rows.push({item:'New item', account:'', vals:b.scenarios.map(()=>null)});
+  persist(); render();
+}
+function delBudgetRow(i){
+  captureBudget();
+  const b = state.budget;
+  if(!confirm('Remove the row "'+b.rows[i].item+'"?')) return;
+  b.rows.splice(i,1);
   persist(); render();
 }
 
@@ -1873,9 +1933,9 @@ function renderIncome(c){
   <div class="panel"><h3>Income &amp; mortgage</h3>
     <div class="row">
       <div><label>${personLabel("Holly")} pre-tax salary</label><input type="number" id="i_pretaxH" value="${inc.pretaxH}"></div>
-      <div><label>${personLabel("Duard")} pre-tax salary</label><input type="number" id="i_pretaxD" value="${inc.pretaxD}"></div>
+      ${isSolo()?'':`<div><label>${personLabel("Duard")} pre-tax salary</label><input type="number" id="i_pretaxD" value="${inc.pretaxD}"></div>`}
       <div><label>${personLabel("Holly")} post-tax / fortnight</label><input type="number" step="0.01" id="i_postH" value="${inc.posttaxFortH}"></div>
-      <div><label>${personLabel("Duard")} post-tax / fortnight</label><input type="number" step="0.01" id="i_postD" value="${inc.posttaxFortD}"></div>
+      ${isSolo()?'':`<div><label>${personLabel("Duard")} post-tax / fortnight</label><input type="number" step="0.01" id="i_postD" value="${inc.posttaxFortD}"></div>`}
     </div>
     <div class="row">
       <div><label>Mortgage / fortnight</label><input type="number" step="0.01" id="i_mort" value="${inc.mortgageFortnightly}"></div>
@@ -1888,23 +1948,23 @@ function renderIncome(c){
   <div class="panel"><h3>KiwiSaver engine</h3>
     <div class="row">
       <div><label>${personLabel("Holly")} contribution rate (%)</label><input type="number" step="0.1" id="k_rateH" value="${(k.rateH*100).toFixed(1)}"></div>
-      <div><label>${personLabel("Duard")} contribution rate (%)</label><input type="number" step="0.1" id="k_rateD" value="${(k.rateD*100).toFixed(1)}"></div>
+      ${isSolo()?'':`<div><label>${personLabel("Duard")} contribution rate (%)</label><input type="number" step="0.1" id="k_rateD" value="${(k.rateD*100).toFixed(1)}"></div>`}
       <div><label>Employer match?</label><select id="k_match"><option value="1" ${k.employerMatch?'selected':''}>Yes — matched</option><option value="0" ${!k.employerMatch?'selected':''}>No</option></select></div>
     </div>
     <button class="btn" onclick="saveKiwisaver()">Save KiwiSaver</button>
     <div class="grid g3" style="margin-top:16px;">
       <div class="tile"><div class="lbl">${personLabel("Holly")} + employer / yr</div><div class="val sm">${money(ksH)}</div></div>
-      <div class="tile"><div class="lbl">${personLabel("Duard")} + employer / yr</div><div class="val sm">${money(ksD)}</div></div>
-      <div class="tile cyan"><div class="lbl">Combined / yr</div><div class="val sm cyan">${money(ksH+ksD)}</div><div class="sub">Flows automatically into every projection as locked retirement money</div></div>
+      ${isSolo()?'':`<div class="tile"><div class="lbl">${personLabel("Duard")} + employer / yr</div><div class="val sm">${money(ksD)}</div></div>`}
+      <div class="tile cyan"><div class="lbl">${isSolo()?'Total':'Combined'} / yr</div><div class="val sm cyan">${money(isSolo()?ksH:ksH+ksD)}</div><div class="sub">Flows automatically into every projection as locked retirement money</div></div>
     </div>
   </div>`;
 }
 function saveIncomeInputs(){
   const inc = state.income;
   inc.pretaxH = clampNum($('#i_pretaxH').value,0,10000000,inc.pretaxH);
-  inc.pretaxD = clampNum($('#i_pretaxD').value,0,10000000,inc.pretaxD);
+  if($('#i_pretaxD')) inc.pretaxD = clampNum($('#i_pretaxD').value,0,10000000,inc.pretaxD);
   inc.posttaxFortH = clampNum($('#i_postH').value,0,100000,inc.posttaxFortH);
-  inc.posttaxFortD = clampNum($('#i_postD').value,0,100000,inc.posttaxFortD);
+  if($('#i_postD')) inc.posttaxFortD = clampNum($('#i_postD').value,0,100000,inc.posttaxFortD);
   inc.mortgageFortnightly = clampNum($('#i_mort').value,0,100000,inc.mortgageFortnightly);
   inc.rentExpectedFortnightly = clampNum($('#i_rentE').value,0,100000,inc.rentExpectedFortnightly);
   inc.rentReceivedFortnightly = clampNum($('#i_rentR').value,0,100000,inc.rentReceivedFortnightly);
@@ -1913,7 +1973,7 @@ function saveIncomeInputs(){
 function saveKiwisaver(){
   const k = state.kiwisaver;
   k.rateH = clampNum($('#k_rateH').value,0,100,k.rateH*100)/100;
-  k.rateD = clampNum($('#k_rateD').value,0,100,k.rateD*100)/100;
+  if($('#k_rateD')) k.rateD = clampNum($('#k_rateD').value,0,100,k.rateD*100)/100;
   k.employerMatch = $('#k_match').value==='1';
   persist(); render();
 }
@@ -2137,12 +2197,12 @@ function renderGoals(c){
   const p = projectWealth({});
   const mile = [250000, 500000, 750000, 1000000, a.fireTarget];
   c.innerHTML += `<div class="panel"><h3>Net worth milestones <span>— base-case projection</span></h3>
-    <table><thead><tr><th>Milestone</th><th>Projected year</th><th>${personLabel("Duard")}</th><th>${personLabel("Holly")}</th></tr></thead><tbody>
+    <table><thead><tr><th>Milestone</th><th>Projected year</th>${isSolo()?`<th>${personLabel("Holly")}</th>`:`<th>${personLabel("Duard")}</th><th>${personLabel("Holly")}</th>`}</tr></thead><tbody>
     ${mile.map(m=>{
       const n = yearsUntil(p.nw, m);
       return `<tr><td>${money(m)}${m===a.fireTarget?' <span class="amber">(FIRE)</span>':''}</td>
         <td>${n===null?'<span class="muted">beyond horizon</span>':'<b>'+(new Date().getFullYear()+n)+'</b>'}</td>
-        <td>${n===null?'—':duardAge()+n}</td><td>${n===null?'—':hollyAge()+n}</td></tr>`;
+        ${isSolo()?'':`<td>${n===null?'—':duardAge()+n}</td>`}<td>${n===null?'—':hollyAge()+n}</td></tr>`;
     }).join('')}
     </tbody></table></div>
     <div class="panel"><h3>Goal settings</h3>
@@ -2244,18 +2304,24 @@ function renderAssumptions(c){
   const p = state.profile||{};
   c.innerHTML = `<h1 class="pagetitle">Assumptions</h1>
     <p class="pagesub">The dials behind every projection. Change one, and the Dashboard, FIRE, Projections, Scenarios, Goals and the Decision engine all move together.</p>
-  <div class="panel"><h3>Household profile <span>— names used throughout the app</span></h3>
+  <div class="panel"><h3>Household profile <span>— who this app is about; every page adapts</span></h3>
     <div class="row">
-      <div><label>Partner A name</label><input type="text" id="p_nameA" value="${esc(p.nameA||'')}" placeholder="Partner A"></div>
-      <div><label>Partner B name</label><input type="text" id="p_nameB" value="${esc(p.nameB||'')}" placeholder="Partner B"></div>
+      <div><label>Household type</label><select id="p_solo">
+        <option value="0" ${!p.solo?'selected':''}>Couple — two partners</option>
+        <option value="1" ${p.solo?'selected':''}>Single — just me</option>
+      </select></div>
+      <div><label>${p.solo?'Your name':'Partner A name'}</label><input type="text" id="p_nameA" value="${esc(p.nameA||'')}" placeholder="${p.solo?'Your name':'Partner A'}"></div>
+      ${p.solo?'':`<div><label>Partner B name</label><input type="text" id="p_nameB" value="${esc(p.nameB||'')}" placeholder="Partner B"></div>`}
       <div><label>Child's name (optional)</label><input type="text" id="p_baby" value="${esc(p.babyName||'')}" placeholder="Leave blank for \\"Baby fund\\""></div>
     </div>
     <div class="row">
+      <div><label>${p.solo?'Your birth date':'Partner A birth date'}</label><input type="date" id="p_dobA" value="${esc((state.birthDates&&state.birthDates.holly)||'')}"></div>
+      ${p.solo?'':`<div><label>Partner B birth date</label><input type="date" id="p_dobB" value="${esc((state.birthDates&&state.birthDates.duard)||'')}"></div>`}
       <div><label>Current city (Property &amp; Decision engine)</label><input type="text" id="p_cityHome" value="${esc(p.cityHome||'')}" placeholder="your current city"></div>
       <div><label>Second city being considered</label><input type="text" id="p_citySecond" value="${esc(p.citySecond||'')}" placeholder="the second city"></div>
     </div>
     <button class="btn" onclick="saveProfile()">Save household profile</button>
-    <div class="sub" style="margin-top:10px;">These names replace every partner label and city reference across the whole app — the Snapshot log, Income, Cash flow, Benchmark, Scenarios, FIRE, Property and Decision engine pages all update together. Nothing here is shared outside your household's login.</div>
+    <div class="sub" style="margin-top:10px;">Switching to "Single" hides every second-partner field across the app (Income, KiwiSaver, Benchmark, Scenarios, the snapshot form) without deleting any data — switch back any time and it all returns. Birth dates drive the age-based projections. Nothing here is shared outside your household's login.</div>
   </div>
   <div class="panel"><h3>Returns &amp; growth</h3>
     <div class="row">
@@ -2278,11 +2344,15 @@ function renderAssumptions(c){
 }
 function saveProfile(){
   state.profile = state.profile || {};
-  state.profile.nameA = ($('#p_nameA').value||'').trim().slice(0,40) || 'Partner A';
-  state.profile.nameB = ($('#p_nameB').value||'').trim().slice(0,40) || 'Partner B';
+  state.profile.solo = $('#p_solo').value==='1';
+  state.profile.nameA = ($('#p_nameA').value||'').trim().slice(0,40) || (state.profile.solo?'Me':'Partner A');
+  if($('#p_nameB')) state.profile.nameB = ($('#p_nameB').value||'').trim().slice(0,40) || 'Partner B';
   state.profile.babyName = ($('#p_baby').value||'').trim().slice(0,40);
   state.profile.cityHome = ($('#p_cityHome').value||'').trim().slice(0,60) || 'your current city';
   state.profile.citySecond = ($('#p_citySecond').value||'').trim().slice(0,60) || 'the second city';
+  state.birthDates = state.birthDates || {};
+  if($('#p_dobA').value) state.birthDates.holly = $('#p_dobA').value;
+  if($('#p_dobB') && $('#p_dobB').value) state.birthDates.duard = $('#p_dobB').value;
   persist(); render();
 }
 function saveAssumptions(){

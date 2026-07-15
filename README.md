@@ -46,8 +46,14 @@ Send them the hosted URL. They can:
 
 1. Tap **Explore the demo** to look around with fictional data, then
 2. **Create an account**, create their own household, and start logging their own
-   snapshots — every label (partner names, child fund name, cities) is editable on
-   the **Assumptions** page, so the app moulds to their situation.
+   snapshots — the app moulds to their situation:
+   - **Single or couple**: the household type on the **Assumptions** page adds or
+     removes the second partner everywhere (switching hides, never deletes).
+   - Partner names, birth dates, the child fund's name, and both cities are all
+     editable on the same page.
+   - **Budget scenarios** are fully theirs: rename, add or delete scenario columns
+     and budget rows to compare any set of income situations.
+   - Every goal target and date, and every projection assumption, is editable.
 
 ## Development
 
