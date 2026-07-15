@@ -1,0 +1,40 @@
+# Pings the Supabase REST API twice a week so the free-tier project never
+# goes a full inactivity window without traffic and gets paused.
+#
+# The URL and publishable (anon) key below are the same values already shipped
+# in index.html — they are designed to be public, and row-level security means
+# this request can read nothing. To override them, add SUPABASE_URL and/or
+# SUPABASE_ANON_KEY as repository secrets; the secrets win when present.
+#
+# Note: GitHub disables scheduled workflows in repositories with no activity
+# for 60 days. If you stop committing for a while, GitHub emails you before
+# that happens — just click "keep workflow enabled", or push any commit.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '23 6 * * 1,4' # 06:23 UTC every Monday and Thursday
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://vxvdfduynwpszffhojld.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_GoxF1CPFqlVNw-7CGsyFCQ_b-vE-yX_' }}
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/household_data?select=household_id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "Supabase responded with HTTP $code"
+          # 2xx = fine; 401/403 still means the API (and therefore the project)
+          # was reached and counts as activity. Anything else is a real problem.
+          case "$code" in
+            2*|401|403) exit 0 ;;
+            *) echo "Unexpected status — is the project paused or the URL wrong?"; exit 1 ;;
+          esac
