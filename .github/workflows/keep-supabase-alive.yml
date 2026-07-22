@@ -1,10 +1,22 @@
-# Pings the Supabase REST API twice a week so the free-tier project never
-# goes a full inactivity window without traffic and gets paused.
+# Writes a row to a dedicated keepalive table twice a week so the free-tier
+# Supabase project always has recent, genuine database activity and doesn't
+# get auto-paused.
 #
-# The URL and publishable (anon) key below are the same values already shipped
-# in index.html — they are designed to be public, and row-level security means
-# this request can read nothing. To override them, add SUPABASE_URL and/or
-# SUPABASE_ANON_KEY as repository secrets; the secrets win when present.
+# Why a write instead of a read: an earlier version of this workflow just
+# SELECTed from household_data with the public anon key. Row-level security
+# correctly blocks that from returning real rows, and Supabase's inactivity
+# detector doesn't appear to count it as meaningful usage — the project still
+# got flagged for pausing despite the workflow running successfully on
+# schedule. A real INSERT/UPDATE against the database is unambiguous activity.
+#
+# One-time setup required (see README.md "Keeping the free Supabase project
+# awake" for the full walkthrough):
+#   1. Run the SQL in that section once, in the Supabase SQL editor, to create
+#      the `_keepalive` table (RLS-locked to service_role only).
+#   2. Add a repository secret named SUPABASE_SERVICE_ROLE_KEY with the
+#      project's service_role key (Project Settings → API in Supabase).
+#      This key bypasses row-level security — it must live ONLY as a GitHub
+#      secret, never in index.html or anywhere else in this repo.
 #
 # Note: GitHub disables scheduled workflows in repositories with no activity
 # for 60 days. If you stop committing for a while, GitHub emails you before
@@ -22,19 +34,24 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase REST API
+      - name: Write a keepalive row
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://vxvdfduynwpszffhojld.supabase.co' }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_GoxF1CPFqlVNw-7CGsyFCQ_b-vE-yX_' }}
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
+          if [ -z "$SERVICE_KEY" ]; then
+            echo "SUPABASE_SERVICE_ROLE_KEY repo secret is not set — see README.md for one-time setup." >&2
+            exit 1
+          fi
           code=$(curl -s -o /dev/null -w '%{http_code}' \
-            "$SUPABASE_URL/rest/v1/household_data?select=household_id&limit=1" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+            -X POST "$SUPABASE_URL/rest/v1/_keepalive" \
+            -H "apikey: $SERVICE_KEY" \
+            -H "Authorization: Bearer $SERVICE_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: resolution=merge-duplicates" \
+            -d "{\"id\":1,\"pinged_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}")
           echo "Supabase responded with HTTP $code"
-          # 2xx = fine; 401/403 still means the API (and therefore the project)
-          # was reached and counts as activity. Anything else is a real problem.
           case "$code" in
-            2*|401|403) exit 0 ;;
-            *) echo "Unexpected status — is the project paused or the URL wrong?"; exit 1 ;;
+            2*) exit 0 ;;
+            *) echo "Unexpected status — check that the _keepalive table exists and the service-role secret is correct."; exit 1 ;;
           esac
