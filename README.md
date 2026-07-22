@@ -32,9 +32,38 @@ syncs through Supabase.
 ## Keeping the free Supabase project awake
 
 Supabase pauses free projects after a period of no activity. The GitHub Action in
-`.github/workflows/keep-supabase-alive.yml` pings the REST API twice a week
-(Mondays and Thursdays), which counts as activity. You can also trigger it manually
-from the Actions tab ("Keep Supabase awake" → Run workflow).
+`.github/workflows/keep-supabase-alive.yml` writes a row to a dedicated keepalive
+table twice a week (Mondays and Thursdays), which is unambiguous database activity.
+You can also trigger it manually from the Actions tab ("Keep Supabase awake" →
+Run workflow).
+
+An earlier version of this workflow just read from `household_data` with the
+public anon key. Row-level security correctly blocks that from returning
+anything, and Supabase's auto-pause detector apparently doesn't count a blocked
+read as real usage — the project got flagged for pausing even though the
+workflow ran successfully every time. Writing a row sidesteps the ambiguity.
+
+**One-time setup** (a few minutes, only needs doing once):
+
+1. In the Supabase dashboard, open **SQL Editor** and run:
+   ```sql
+   create table if not exists public._keepalive (
+     id int primary key default 1,
+     pinged_at timestamptz not null default now()
+   );
+   alter table public._keepalive enable row level security;
+   -- No policies are added on purpose: with RLS on and zero policies, neither
+   -- the anon key nor logged-in users can read or write this table at all.
+   -- Only the service_role key (which bypasses RLS by design) can touch it.
+   ```
+2. In **Project Settings → API**, copy the **service_role** key (marked *secret*
+   — this is different from the publishable/anon key already in `index.html`,
+   and must never be put in this repo or any client-side file).
+3. In this GitHub repo, go to **Settings → Secrets and variables → Actions →
+   New repository secret**, name it `SUPABASE_SERVICE_ROLE_KEY`, and paste the
+   key as the value.
+4. From the **Actions** tab, run "Keep Supabase awake" once manually to confirm
+   it succeeds.
 
 One caveat: GitHub pauses *scheduled workflows* in repos with no pushes for 60
 days — it emails you first, and one click ("keep workflow enabled") or any commit
